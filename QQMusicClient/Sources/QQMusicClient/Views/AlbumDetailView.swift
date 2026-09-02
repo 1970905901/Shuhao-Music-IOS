@@ -29,9 +29,9 @@ struct AlbumDetailView: View {
                 viewModel.load(albumMid: albumMid)
             }
         }
-        .onChange(of: viewModel.platform) { _ in
+        .onChange(of: viewModel.platform, perform: { _ in
             viewModel.load(albumMid: albumMid)
-        }
+        })
         .overlay {
             if viewModel.isLoading {
                 ProgressView()

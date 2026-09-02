@@ -22,9 +22,9 @@ struct LeaderboardListView: View {
         .onAppear {
             viewModel.load()
         }
-        .onChange(of: viewModel.platform) { _ in
+        .onChange(of: viewModel.platform, perform: { _ in
             viewModel.load()
-        }
+        })
         .overlay {
             if viewModel.isLoading {
                 ProgressView()

@@ -29,9 +29,9 @@ struct PlaylistDetailView: View {
                 viewModel.load(playlistID: playlist.id)
             }
         }
-        .onChange(of: viewModel.platform) { _ in
+        .onChange(of: viewModel.platform, perform: { _ in
             viewModel.load(playlistID: playlist.id)
-        }
+        })
         .overlay {
             if viewModel.isLoading {
                 ProgressView()

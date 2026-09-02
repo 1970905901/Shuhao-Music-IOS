@@ -51,9 +51,9 @@ struct CustomSourceSettingsView: View {
                             Text(QualityPreference.displayName(quality)).tag(quality)
                         }
                     }
-                    .onChange(of: viewModel.preferredQuality) { newValue in
+                    .onChange(of: viewModel.preferredQuality, perform: { newValue in
                         viewModel.selectQuality(newValue)
-                    }
+                    })
 
                     Text("当前平台：\(viewModel.qualityPlatform.displayName)")
                         .font(.caption)

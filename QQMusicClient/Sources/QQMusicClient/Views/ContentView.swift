@@ -3,7 +3,7 @@ import SwiftUI
 public struct ContentView: View {
     @EnvironmentObject private var playerViewModel: PlayerViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @StateObject private var platformStore = PlatformStore.shared
+    @ObservedObject private var platformStore = PlatformStore.shared
 
     public var body: some View {
         if horizontalSizeClass == .compact {

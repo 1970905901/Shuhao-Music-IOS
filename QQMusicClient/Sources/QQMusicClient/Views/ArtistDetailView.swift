@@ -29,9 +29,9 @@ struct ArtistDetailView: View {
                 viewModel.load(singerMid: singerMid)
             }
         }
-        .onChange(of: viewModel.platform) { _ in
+        .onChange(of: viewModel.platform, perform: { _ in
             viewModel.load(singerMid: singerMid)
-        }
+        })
         .overlay {
             if viewModel.isLoading {
                 ProgressView()
