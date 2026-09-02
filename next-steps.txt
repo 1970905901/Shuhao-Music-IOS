@@ -47,10 +47,10 @@ anotherQQMusic 后续开发清单
       - 新增 MusicPlatform 枚举与 MusicPlatformService 协议；
       - 各列表/详情页增加 PlatformPicker 切换平台；
       - 播放器根据当前平台调用自定义音源对应 source（tx/wy/kg/kw）；
-      - 网易云：搜索、歌词已接入公开 API（weapi 加密未实现）；歌单/专辑/歌手暂不支持；
-      - 酷狗：搜索、歌词、歌单、专辑、歌手均已接入；
-      - 酷我：搜索、歌词、专辑、歌手均已接入；歌单广场入口缺失，fetchPlaylists 返回空；
-      - QQ 音乐：搜索/歌单/专辑/歌手/歌词 保持完整可用。
+      - 网易云：搜索、歌词、排行榜列表已接入（weapi 加密未实现）；歌单/专辑/歌手/排行榜详情暂不支持；
+      - 酷狗：搜索、歌词、歌单、专辑、歌手、排行榜列表/详情均已接入；
+      - 酷我：搜索、歌词、歌单、专辑、歌手、排行榜列表已接入；排行榜详情需 wbd 加密；
+      - QQ 音乐：搜索/歌单/专辑/歌手/歌词/排行榜 保持完整可用。
 
 
 待完成清单
@@ -79,37 +79,86 @@ anotherQQMusic 后续开发清单
          新增 CustomSourceService.hasSource() 前置校验，无音源时抛出明确文案
          "未导入自定义音源，请前往「自定义音源」导入 LxMusic JS 源后再播放"。
 
-[ ] A4. 网易云缺失 4 项能力且 UI 无降级
-    文件：Services/NetEaseMusicService.swift
-    说明：歌单 / 歌单详情 / 专辑 / 歌手均走协议默认实现抛"暂不支持"，
-         但 PlatformPicker 仍可切到网易云并进入这些页面，需禁用入口或补空态提示。
+[x] A0. Info.plist 缺少 ATS 配置，http 接口被系统拦截（阻断级）
+    文件：Shuhao-Music-IOS/ShuhaoMusic/Info.plist、QQMusicClient/Resources/Info.plist
+    说明：酷我全部接口、酷狗歌单/排行榜接口均为 http://，未配置 NSAppTransportSecurity 时
+         iOS 会直接拦截请求，导致这些平台在真机上完全不可用；
+         已补 NSAllowsArbitraryLoads（与参考项目 LX-Y Music 一致）。
+         后续可收敛为 NSExceptionDomains 白名单以降低审核风险。
 
-[ ] A5. 酷我歌单广场返回空数组无空态
-    文件：Services/KuwoMusicService.swift（fetchPlaylists 直接 return []）
-    说明：歌单页切到酷我后空白一片，应给出明确提示文案。
+[x] A4. 网易云缺失 4 项能力且 UI 无降级（降级已完成，接口待 weapi 加密）
+    文件：Models/MusicPlatform.swift、Views/EmptyStateView.swift（新增）、各详情页 ViewModel 与 View、
+         Views/SearchView.swift
+    说明：新增 PlatformCapability 能力声明与各平台 capabilities；
+         ViewModel 请求前先校验能力，不支持时展示 EmptyStateView；
+         SongRow 的"查看专辑/查看歌手"入口按能力显隐（A9 一并解决）。
+         网易云接口本身需 weapi 加密（见 A13），目前仍只支持搜索与歌词。
 
-[ ] A6. 平台选择未持久化
+[x] A5. 酷我歌单广场缺失、酷狗歌单接口已失效
+    文件：Services/KuwoMusicService.swift、Services/KugouMusicService.swift
+    说明：接口均已在真机网络下逐条实测：
+         - 酷我歌单广场：wapi.kuwo.cn/api/pc/classify/playlist/getRcmPlayList（原为 return []）
+         - 酷我歌单详情：nplserver.kuwo.cn/pl.svc 原参数返回空 musiclist，改用 keyset=pl2012 等参数
+         - 酷狗歌单广场：mobilecdn.kugou.com/api/v3/playlist/list 已返回 Access Deny，
+           改用 www2.kugou.kugou.com/yueku/v9/special/getSpecial
+         - 酷狗歌单详情：mobilecdn .../playlist/songs 同样 Access Deny，
+           改为解析官网页面内嵌的 global.data
+         歌单名不再写死"歌单"（酷狗从页面提取，酷我取 title）（A8 一并解决）。
+
+[x] A6. 平台选择未持久化
     文件：ViewModels/PlatformStore.swift
-    说明：selectedPlatform 每次启动回退 .qq，需写入 UserDefaults。
+    说明：selectedPlatform 写入 UserDefaults（key: qqmusic.selectedPlatform），启动时恢复，无效值回退 .qq。
 
-[ ] A7. 音质硬编码 "flac"
-    文件：Services/CustomSourceService.swift（audioURL 默认参数）
-    说明：未使用已解析的 ParsedLxMusicSource.qualitys，源不支持 flac 时直接失败；
-         应按平台取该源支持的音质并允许用户在设置中选择。
+[x] A7. 音质硬编码 "flac"
+    文件：Services/CustomSourceService.swift、Utils/Constants.swift、Views/CustomSourceSettingsView.swift
+    说明：新增 resolvedQuality(for:source:)，按音源 qualitys[平台 sourceCode] 取可用音质，
+         优先级 master > atmos_plus > atmos > hires > flac > 999k > 320k > 192k > 128k；
+         音源不支持该平台时直接给出明确错误；
+         设置页新增音质 Picker（自动 / 该平台可用音质），偏好存入 UserDefaults。
 
-[ ] A8. 酷狗歌单详情名称写死"歌单"
-    文件：Services/KugouMusicService.swift（fetchPlaylistDetail）
+[x] A8. 酷狗歌单详情名称写死"歌单" —— 见 A5
 
-[ ] A9. 网易云 Singer/Album 的 mid 为 nil
-    文件：Services/NetEaseMusicService.swift（search 中 Singer(id:nil, mid:nil)）
-    说明：SongRow 的"查看专辑 / 查看歌手"入口依赖 mid，网易云下这两个入口不可见。
+[x] A9. 网易云 Singer/Album 的 mid 为 nil —— 见 A4（入口已按能力显隐）
 
 [ ] A10. 侧边栏标题硬编码
     文件：Views/ContentView.swift（.navigationTitle("QQ 音乐")）
     说明：未随当前平台变化。
 
-[ ] A11. MusicPlatform.usesSongMid 定义后无引用（死代码）
+[x] A11. MusicPlatform.usesSongMid 死代码
     文件：Models/MusicPlatform.swift
+    说明：已删除；其职责由 Song.platform 承担。
+
+[x] A12. 四平台排行榜入口与 QQ/酷狗详情
+    文件：Services/MusicPlatformService.swift、Models/MusicPlatform.swift、Models/LeaderboardDefinitions.swift（新增）、
+         Services/QQMusicAPIService.swift、Services/KugouMusicService.swift、
+         Views/LeaderboardListView.swift（新增）、ViewModels/LeaderboardListViewModel.swift（新增）、Views/ContentView.swift
+    说明：协议新增 fetchLeaderboards / fetchLeaderboardDetail，MusicPlatform 新增 .leaderboard 能力；
+         各平台硬编码热门榜单列表（参考项目 leaderboard.js）；
+         QQ 音乐排行榜详情走 fcg_v8_toplist_cp.fcg（实测可用，date 留空取最新一期）；
+         酷狗排行榜详情走 mobilecdnbj.kugou.com/api/v3/rank/song（实测可用）；
+         网易云/酷我排行榜详情分别依赖 weapi / wbd 加密，尚未实现，点击进入会提示暂不支持（A13/A14）。
+
+[ ] A13. 实现网易云 weapi 加密，解锁歌单 / 专辑 / 歌手 / 排行榜详情
+    文件：Services/NetEaseMusicService.swift（需新增加密辅助类）
+    说明：实测网易云公开老接口已全面风控：/api/playlist/detail 返回 20001、
+         /api/playlist/list 返回 500、/api/album/{id} 返回 -462、/api/artists 返回 404；
+         必须移植 weapi 加密（AES-128-CBC + RSA）才能接入。可参考 wy/utils/crypto.js。
+
+[ ] A14. 实现酷我 wbd 加密，解锁排行榜详情
+    文件：Services/KuwoMusicService.swift（需新增加密辅助类）
+    说明：酷我排行榜详情接口 https://wbd.kuwo.cn/api/bd/bang/bang_info 需要 wbdCrypto，
+         参考项目见 kw/util.js。
+
+[ ] A15. 酷我歌曲 ID 与自定义音源对齐
+    文件：Services/KuwoMusicService.swift
+    说明：LX 的 kw 音源使用纯数字 id（MUSICRID 去掉 MUSIC_ 前缀），
+         本项目此前使用 MUSIC_xxx 作为 mid，可能导致部分按 LX 约定实现的音源无法匹配；
+         已改为搜索 / 歌单详情均输出纯数字 id。升级前历史/收藏中的 MUSIC_ 格式歌曲播放可能受影响。
+
+[ ] A16. 非 QQ 平台歌曲封面在持久化后丢失
+    文件：Models/Song.swift
+    说明：当前 Song 的 Codable 未编码 coverURL，跨平台歌曲的封面在收藏/历史持久化后会变为 nil；
+         如希望收藏列表显示封面，需把 coverURL 加入 CodingKeys 并在 decode 时按 platform 还原。
 
 
 一、关键缺陷修复（优先）

@@ -14,6 +14,30 @@ enum QQMusicURL {
     }
 }
 
+/// 自定义音源播放音质偏好
+enum QualityPreference {
+    static let storageKey = "qqmusic.preferredQuality"
+    /// 未手动选择时的占位值：由音源支持的音质中取最高可用
+    static let auto = "auto"
+
+    /// 音质展示名，未收录的音质原样返回
+    static func displayName(_ quality: String) -> String {
+        switch quality {
+        case auto: return "自动（取最高可用）"
+        case "master": return "Master 母带"
+        case "atmos_plus": return "Atmos Plus 全景声"
+        case "atmos": return "Atmos 全景声"
+        case "hires": return "Hi-Res 高解析"
+        case "flac": return "FLAC 无损"
+        case "999k": return "999k 无损"
+        case "320k": return "320k 极高"
+        case "192k": return "192k 较高"
+        case "128k": return "128k 标准"
+        default: return quality
+        }
+    }
+}
+
 enum QQMusicHeader {
     static let referer = "https://y.qq.com"
     static let origin = "https://y.qq.com"

@@ -3,6 +3,7 @@ import SwiftUI
 public struct ContentView: View {
     @EnvironmentObject private var playerViewModel: PlayerViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @StateObject private var platformStore = PlatformStore.shared
 
     public var body: some View {
         if horizontalSizeClass == .compact {
@@ -33,6 +34,9 @@ public struct ContentView: View {
                 NavigationLink(destination: PlaylistListView().navigationTitle("歌单")) {
                     Label("歌单", systemImage: "music.note.list")
                 }
+                NavigationLink(destination: LeaderboardListView().navigationTitle("排行榜")) {
+                    Label("排行榜", systemImage: "chart.bar")
+                }
                 NavigationLink(destination: PlayerView().navigationTitle("正在播放")) {
                     Label("正在播放", systemImage: "play.circle")
                 }
@@ -48,6 +52,6 @@ public struct ContentView: View {
             }
         }
         .listStyle(.sidebar)
-        .navigationTitle("QQ 音乐")
+        .navigationTitle(platformStore.selectedPlatform.displayName)
     }
 }

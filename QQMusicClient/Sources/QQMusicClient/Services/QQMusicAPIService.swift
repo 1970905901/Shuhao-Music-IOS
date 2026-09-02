@@ -128,6 +128,11 @@ actor QQMusicAPIService: MusicPlatformService {
     }
 
     func fetchPlaylistDetail(id: String) async throws -> (playlist: Playlist, songs: [Song]) {
+        // 榜单 id 形如 tx__4，与歌单详情接口不同，分派到排行榜详情
+        if id.hasPrefix("tx__") {
+            return try await fetchLeaderboardDetail(id: id)
+        }
+
         let cacheKey = "playlist:\(id)"
         if let cached = await playlistDetailCache.value(for: cacheKey) {
             return cached
@@ -156,6 +161,142 @@ actor QQMusicAPIService: MusicPlatformService {
         let result = (playlist, decoded.songs)
         await playlistDetailCache.setValue(result, for: cacheKey)
         return result
+    }
+
+    // MARK: - 排行榜
+
+    func fetchLeaderboards() async throws -> [Playlist] {
+        // 参考 tx/leaderboard.js，榜单列表硬编码，避免依赖已失效的 topList 接口
+        return [
+            Playlist(id: "tx__4", name: "流行指数榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__26", name: "热歌榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__27", name: "新歌榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__62", name: "飙升榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__58", name: "说唱榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__57", name: "喜力电音榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__28", name: "网络歌曲榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__5", name: "内地榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__3", name: "欧美榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__59", name: "香港地区榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__16", name: "韩国榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__60", name: "抖快榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__29", name: "影视金曲榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__17", name: "日本榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__52", name: "腾讯音乐人原创榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__36", name: "K歌金曲榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__61", name: "台湾地区榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__63", name: "DJ舞曲榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__64", name: "综艺新歌榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__65", name: "国风热歌榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__67", name: "听歌识曲榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__72", name: "动漫音乐榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__73", name: "游戏音乐榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__75", name: "有声榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+            Playlist(id: "tx__131", name: "校园音乐人排行榜", coverURL: nil, songCount: nil, listenCount: nil, creator: nil),
+        ]
+    }
+
+    func fetchLeaderboardDetail(id: String) async throws -> (playlist: Playlist, songs: [Song]) {
+        let cacheKey = "leaderboard:\(id)"
+        if let cached = await playlistDetailCache.value(for: cacheKey) {
+            return cached
+        }
+
+        let bangid = id.replacingOccurrences(of: "tx__", with: "")
+        guard var components = URLComponents(string: "https://c.y.qq.com/v8/fcg-bin/fcg_v8_toplist_cp.fcg") else {
+            throw QQMusicError.invalidURL
+        }
+        components.queryItems = [
+            URLQueryItem(name: "tpl", value: "3"),
+            URLQueryItem(name: "page", value: "detail"),
+            URLQueryItem(name: "date", value: ""),
+            URLQueryItem(name: "topid", value: bangid),
+            URLQueryItem(name: "type", value: "top"),
+            URLQueryItem(name: "song_begin", value: "0"),
+            URLQueryItem(name: "song_num", value: "300"),
+            URLQueryItem(name: "g_tk", value: "5381"),
+            URLQueryItem(name: "loginUin", value: "0"),
+            URLQueryItem(name: "hostUin", value: "0"),
+            URLQueryItem(name: "format", value: "json"),
+            URLQueryItem(name: "inCharset", value: "utf8"),
+            URLQueryItem(name: "outCharset", value: "utf-8"),
+            URLQueryItem(name: "notice", value: "0"),
+            URLQueryItem(name: "platform", value: "yqq.json"),
+            URLQueryItem(name: "needNewCode", value: "0"),
+        ]
+
+        guard let url = components.url else { throw QQMusicError.invalidURL }
+        var request = URLRequest(url: url)
+        request.setValue("https://y.qq.com", forHTTPHeaderField: "Referer")
+        request.setValue("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36", forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 30
+
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response)
+
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              json["code"] as? Int == 0,
+              let songlist = json["songlist"] as? [[String: Any]] else {
+            throw QQMusicError.decodeFailed
+        }
+
+        let playlist = Playlist(id: id, name: leaderboardName(for: id), coverURL: nil, songCount: songlist.count, listenCount: nil, creator: nil)
+        let songs = songlist.compactMap { item -> Song? in
+            guard let dataObj = item["data"] as? [String: Any],
+                  let mid = dataObj["songmid"] as? String, !mid.isEmpty,
+                  let name = dataObj["songname"] as? String else { return nil }
+            let singers = (dataObj["singer"] as? [[String: Any]])?.compactMap { singer -> Singer? in
+                guard let sname = singer["name"] as? String else { return nil }
+                return Singer(id: (singer["id"] as? Int).map(String.init), mid: singer["mid"] as? String, name: sname)
+            } ?? []
+            let albumMid = dataObj["albummid"] as? String
+            let albumName = dataObj["albumname"] as? String ?? ""
+            return Song(
+                id: mid,
+                mid: mid,
+                name: name,
+                subtitle: nil,
+                album: Album(id: albumMid, mid: albumMid, name: albumName),
+                singers: singers,
+                duration: dataObj["interval"] as? Int,
+                coverURL: nil,
+                platform: .qq
+            )
+        }
+        let result = (playlist, songs)
+        await playlistDetailCache.setValue(result, for: cacheKey)
+        return result
+    }
+
+    private func leaderboardName(for id: String) -> String {
+        let map: [String: String] = [
+            "tx__4": "流行指数榜",
+            "tx__26": "热歌榜",
+            "tx__27": "新歌榜",
+            "tx__62": "飙升榜",
+            "tx__58": "说唱榜",
+            "tx__57": "喜力电音榜",
+            "tx__28": "网络歌曲榜",
+            "tx__5": "内地榜",
+            "tx__3": "欧美榜",
+            "tx__59": "香港地区榜",
+            "tx__16": "韩国榜",
+            "tx__60": "抖快榜",
+            "tx__29": "影视金曲榜",
+            "tx__17": "日本榜",
+            "tx__52": "腾讯音乐人原创榜",
+            "tx__36": "K歌金曲榜",
+            "tx__61": "台湾地区榜",
+            "tx__63": "DJ舞曲榜",
+            "tx__64": "综艺新歌榜",
+            "tx__65": "国风热歌榜",
+            "tx__67": "听歌识曲榜",
+            "tx__72": "动漫音乐榜",
+            "tx__73": "游戏音乐榜",
+            "tx__75": "有声榜",
+            "tx__131": "校园音乐人排行榜",
+        ]
+        return map[id] ?? "排行榜"
     }
 
     func fetchAlbumDetail(albumMid: String) async throws -> (info: AlbumInfo, songs: [Song]) {

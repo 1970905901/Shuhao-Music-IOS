@@ -72,6 +72,26 @@ actor NetEaseMusicService: MusicPlatformService {
         return LyricLine.parse(lrcContent: lrcString)
     }
 
+    func fetchLeaderboards() async throws -> [Playlist] {
+        Playlist.neteaseLeaderboards
+    }
+
+    func fetchPlaylistDetail(id: String) async throws -> (playlist: Playlist, songs: [Song]) {
+        // 排行榜 id 形如 wy__19723756，需 weapi 加密，当前未实现
+        if id.hasPrefix("wy__") {
+            return try await fetchLeaderboardDetail(id: id)
+        }
+        let playlist = Playlist(
+            id: id,
+            name: "网易云歌单",
+            coverURL: nil,
+            songCount: 0,
+            listenCount: nil,
+            creator: nil
+        )
+        return (playlist, [])
+    }
+
     private func makeRequest(url: URL) -> URLRequest {
         var request = URLRequest(url: url)
         request.setValue("https://music.163.com", forHTTPHeaderField: "Referer")

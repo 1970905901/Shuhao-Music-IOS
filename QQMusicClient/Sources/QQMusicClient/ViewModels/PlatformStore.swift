@@ -5,7 +5,20 @@ import Combine
 final class PlatformStore: ObservableObject {
     static let shared = PlatformStore()
 
-    @Published var selectedPlatform: MusicPlatform = .qq
+    private static let storageKey = "qqmusic.selectedPlatform"
 
-    private init() {}
+    @Published var selectedPlatform: MusicPlatform {
+        didSet {
+            UserDefaults.standard.set(selectedPlatform.rawValue, forKey: PlatformStore.storageKey)
+        }
+    }
+
+    private init() {
+        if let rawValue = UserDefaults.standard.string(forKey: PlatformStore.storageKey),
+           let stored = MusicPlatform(rawValue: rawValue) {
+            selectedPlatform = stored
+        } else {
+            selectedPlatform = .qq
+        }
+    }
 }

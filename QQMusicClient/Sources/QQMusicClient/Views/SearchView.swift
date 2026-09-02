@@ -99,12 +99,13 @@ struct SongRow: View {
         }
         .padding(.vertical, 4)
         .contextMenu {
-            if let albumMid = song.album?.mid, !albumMid.isEmpty {
+            // 平台未接入专辑/歌手时隐藏入口，避免进入必然失败的详情页
+            if let albumMid = song.album?.mid, !albumMid.isEmpty, song.platform.supports(.album) {
                 NavigationLink(destination: AlbumDetailView(albumMid: albumMid)) {
                     Label("查看专辑", systemImage: "square.stack")
                 }
             }
-            if let singerMid = song.singers.first?.mid, !singerMid.isEmpty {
+            if let singerMid = song.singers.first?.mid, !singerMid.isEmpty, song.platform.supports(.artist) {
                 NavigationLink(destination: ArtistDetailView(singerMid: singerMid)) {
                     Label("查看歌手", systemImage: "person")
                 }

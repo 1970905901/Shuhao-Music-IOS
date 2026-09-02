@@ -2,11 +2,10 @@ import Foundation
 import Combine
 
 @MainActor
-final class PlaylistListViewModel: ObservableObject {
-    @Published private(set) var playlists: [Playlist] = []
-    @Published private(set) var isLoading = false
+final class LeaderboardListViewModel: ObservableObject {
+    @Published var leaderboards: [Playlist] = []
+    @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var unsupportedMessage: String?
     @Published private(set) var platform: MusicPlatform = PlatformStore.shared.selectedPlatform
 
     private var service: any MusicPlatformService = MusicServiceFactory.service(for: PlatformStore.shared.selectedPlatform)
@@ -18,30 +17,22 @@ final class PlaylistListViewModel: ObservableObject {
             .sink { [weak self] platform in
                 self?.platform = platform
                 self?.service = MusicServiceFactory.service(for: platform)
-                self?.playlists = []
-                self?.unsupportedMessage = platform.supports(.playlist) ? nil : platform.unsupportedMessage(.playlist)
+                self?.leaderboards = []
             }
             .store(in: &cancellables)
     }
 
     func load() {
-        guard platform.supports(.playlist) else {
-            playlists = []
-            isLoading = false
-            unsupportedMessage = platform.unsupportedMessage(.playlist)
-            return
-        }
-        unsupportedMessage = nil
         isLoading = true
         errorMessage = nil
         Task {
             do {
-                playlists = try await service.fetchPlaylists()
-                isLoading = false
+                let list = try await service.fetchLeaderboards()
+                leaderboards = list
             } catch {
-                isLoading = false
                 errorMessage = error.localizedDescription
             }
+            isLoading = false
         }
     }
 }

@@ -10,6 +10,8 @@ protocol MusicPlatformService: Actor {
     func fetchAlbumDetail(albumMid: String) async throws -> (info: AlbumInfo, songs: [Song])
     func fetchArtistDetail(singerMid: String, page: Int, pageSize: Int) async throws -> (info: ArtistInfo, songs: [Song])
     func lyric(for songMid: String) async throws -> [LyricLine]
+    func fetchLeaderboards() async throws -> [Playlist]
+    func fetchLeaderboardDetail(id: String) async throws -> (playlist: Playlist, songs: [Song])
 }
 
 extension MusicPlatformService {
@@ -31,5 +33,13 @@ extension MusicPlatformService {
 
     func lyric(for songMid: String) async throws -> [LyricLine] {
         throw QQMusicError.custom(message: "\(platform.displayName) 暂不支持歌词")
+    }
+
+    func fetchLeaderboards() async throws -> [Playlist] {
+        throw QQMusicError.custom(message: "\(platform.displayName) 暂不支持排行榜")
+    }
+
+    func fetchLeaderboardDetail(id: String) async throws -> (playlist: Playlist, songs: [Song]) {
+        throw QQMusicError.custom(message: "\(platform.displayName) 暂不支持排行榜详情")
     }
 }

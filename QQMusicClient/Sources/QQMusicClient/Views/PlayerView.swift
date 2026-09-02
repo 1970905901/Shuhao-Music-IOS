@@ -90,7 +90,8 @@ struct PlayerView: View {
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            Text(viewModel.platform.displayName)
+            // 播放历史/收藏中的跨平台歌曲时，展示歌曲自身所属平台
+            Text(viewModel.currentSong?.platform.displayName ?? viewModel.platform.displayName)
                 .font(.caption)
                 .foregroundColor(.pink)
                 .padding(.horizontal, 10)

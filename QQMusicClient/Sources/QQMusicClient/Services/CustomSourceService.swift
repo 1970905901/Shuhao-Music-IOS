@@ -34,12 +34,51 @@ actor CustomSourceService {
 
     // MARK: - Playback URL
 
-    /// 使用已导入的自定义源获取指定歌曲的播放 URL
-    func audioURL(for song: Song, platform: MusicPlatform, quality: String = "flac") async throws -> URL {
+    /// 使用已导入的自定义源获取指定歌曲的播放 URL，音质由音源在该平台的支持情况决定
+    func audioURL(for song: Song, platform: MusicPlatform) async throws -> URL {
         guard let source = loadSource() else {
             throw QQMusicError.noAudioURL
         }
+        guard let quality = resolvedQuality(for: platform, source: source) else {
+            throw QQMusicError.custom(message: "当前音源不支持 \(platform.displayName)")
+        }
         return try await audioURL(for: song, platform: platform, source: source, quality: quality)
+    }
+
+    /// 音质优先级（由高到低），未手动指定时取该平台可用的最高音质
+    /// 与 LxMusic 一致：master 母带 > atmos_plus > atmos > hires > flac > 999k > 320k > 192k > 128k
+    private static let qualityPriority = ["master", "atmos_plus", "atmos", "hires", "flac", "999k", "320k", "192k", "128k"]
+
+    /// 按音源在该平台声明的可用音质解析实际请求用的 quality，源不支持该平台时返回 nil
+    func resolvedQuality(for platform: MusicPlatform, source: ParsedLxMusicSource) -> String? {
+        let available = source.qualitys[platform.sourceCode] ?? []
+        guard !available.isEmpty else { return nil }
+        if let preferred = preferredQuality(), available.contains(preferred) { return preferred }
+        for level in Self.qualityPriority where available.contains(level) { return level }
+        return available.first
+    }
+
+    /// 当前音源在该平台支持的音质（按音质从高到低），供设置页展示与选择
+    func availableQualities(for platform: MusicPlatform, source: ParsedLxMusicSource) -> [String] {
+        let available = source.qualitys[platform.sourceCode] ?? []
+        return available.sorted { Self.rank($0) < Self.rank($1) }
+    }
+
+    func preferredQuality() -> String? {
+        let stored = UserDefaults.standard.string(forKey: QualityPreference.storageKey)
+        return (stored?.isEmpty ?? true) ? nil : stored
+    }
+
+    func setPreferredQuality(_ quality: String?) {
+        if let quality = quality, !quality.isEmpty, quality != QualityPreference.auto {
+            UserDefaults.standard.set(quality, forKey: QualityPreference.storageKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: QualityPreference.storageKey)
+        }
+    }
+
+    private static func rank(_ quality: String) -> Int {
+        qualityPriority.firstIndex(of: quality) ?? qualityPriority.count
     }
 
     func audioURL(for song: Song, platform: MusicPlatform, source: ParsedLxMusicSource, quality: String) async throws -> URL {

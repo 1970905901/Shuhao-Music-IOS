@@ -7,6 +7,7 @@ final class PlaylistDetailViewModel: ObservableObject {
     @Published private(set) var songs: [Song] = []
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
+    @Published var unsupportedMessage: String?
     @Published private(set) var platform: MusicPlatform = PlatformStore.shared.selectedPlatform
 
     private var service: any MusicPlatformService = MusicServiceFactory.service(for: PlatformStore.shared.selectedPlatform)
@@ -20,11 +21,19 @@ final class PlaylistDetailViewModel: ObservableObject {
                 self?.service = MusicServiceFactory.service(for: platform)
                 self?.playlist = nil
                 self?.songs = []
+                self?.unsupportedMessage = platform.supports(.playlistDetail) ? nil : platform.unsupportedMessage(.playlistDetail)
             }
             .store(in: &cancellables)
     }
 
     func load(playlistID: String) {
+        guard platform.supports(.playlistDetail) else {
+            songs = []
+            isLoading = false
+            unsupportedMessage = platform.unsupportedMessage(.playlistDetail)
+            return
+        }
+        unsupportedMessage = nil
         isLoading = true
         errorMessage = nil
         Task {
