@@ -1,4 +1,5 @@
 import SwiftUI
+import QQMusicClient
 
 @main
 struct ShuhaoMusicApp: App {

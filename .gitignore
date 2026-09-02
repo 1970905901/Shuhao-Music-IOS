@@ -95,3 +95,6 @@ iOSInjectionProject/
 # XcodeGen generated project
 *.xcodeproj
 *.xcworkspace
+
+# Backup of nested git repository
+.git.bak/

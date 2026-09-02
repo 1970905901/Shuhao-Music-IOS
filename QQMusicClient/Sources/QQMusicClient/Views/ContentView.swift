@@ -1,10 +1,10 @@
 import SwiftUI
 
-struct ContentView: View {
+public struct ContentView: View {
     @EnvironmentObject private var playerViewModel: PlayerViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    var body: some View {
+    public var body: some View {
         if horizontalSizeClass == .compact {
             NavigationView {
                 sidebar

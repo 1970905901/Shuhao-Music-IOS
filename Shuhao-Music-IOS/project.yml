@@ -1,4 +1,7 @@
 name: ShuhaoMusic
+packages:
+  QQMusicClient:
+    path: ../QQMusicClient
 targets:
   ShuhaoMusic:
     type: application
@@ -6,7 +9,8 @@ targets:
     deploymentTarget: "15.0"
     sources:
       - ShuhaoMusic
-      - QQMusicClient/Sources/QQMusicClient
+    dependencies:
+      - package: QQMusicClient
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: shuhaomusic.com

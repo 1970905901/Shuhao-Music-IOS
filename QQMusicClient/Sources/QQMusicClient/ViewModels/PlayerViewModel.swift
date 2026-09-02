@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 @MainActor
-final class PlayerViewModel: ObservableObject {
+public final class PlayerViewModel: ObservableObject {
     @Published private(set) var currentSong: Song?
     @Published private(set) var isPlaying = false
     @Published private(set) var currentTime: TimeInterval = 0
@@ -19,7 +19,7 @@ final class PlayerViewModel: ObservableObject {
     private let audioService = AudioPlayerService.shared
     private var cancellables = Set<AnyCancellable>()
 
-    init() {
+    public init() {
         audioService.$currentSong
             .receive(on: DispatchQueue.main)
             .sink { [weak self] song in
