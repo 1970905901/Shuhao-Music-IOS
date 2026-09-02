@@ -1,0 +1,35 @@
+name: ShuhaoMusic
+targets:
+  ShuhaoMusic:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - ShuhaoMusic
+      - QQMusicClient/Sources/QQMusicClient
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: shuhaomusic.com
+        INFOPLIST_FILE: ShuhaoMusic/Info.plist
+        MARKETING_VERSION: "20260902"
+        CURRENT_PROJECT_VERSION: "20260902"
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        DEVELOPMENT_TEAM: ""
+        SWIFT_VERSION: "5.5"
+        TARGETED_DEVICE_FAMILY: "1,2"
+    info:
+      path: ShuhaoMusic/Info.plist
+      properties:
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - audio
