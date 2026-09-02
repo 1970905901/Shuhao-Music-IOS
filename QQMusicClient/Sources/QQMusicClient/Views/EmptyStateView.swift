@@ -2,6 +2,8 @@ import SwiftUI
 
 /// 统一空态视图：平台能力不支持、无数据、加载失败共用
 struct EmptyStateView: View {
+    @ScaledMetric private var iconSize: CGFloat = 44
+
     let systemImage: String
     let title: String
     let message: String?
@@ -15,7 +17,7 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: systemImage)
-                .font(.system(size: 44))
+                .font(.system(size: iconSize))
                 .foregroundColor(.secondary)
             Text(title)
                 .font(.headline)

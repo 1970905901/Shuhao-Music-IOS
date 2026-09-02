@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 
 struct CustomSourceSettingsView: View {
+    @ScaledMetric private var minEditorHeight: CGFloat = 180
     @StateObject private var viewModel = CustomSourceSettingsViewModel()
 
     var body: some View {
@@ -26,7 +27,7 @@ struct CustomSourceSettingsView: View {
 
             Section("导入 LxMusic 音源") {
                 TextEditor(text: $viewModel.scriptText)
-                    .frame(minHeight: 180)
+                    .frame(minHeight: minEditorHeight)
                     .font(.system(.body, design: .monospaced))
 
                 Button {

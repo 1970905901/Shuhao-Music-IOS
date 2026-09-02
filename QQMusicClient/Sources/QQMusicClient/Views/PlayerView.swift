@@ -3,6 +3,10 @@ import SwiftUI
 struct PlayerView: View {
     @EnvironmentObject private var viewModel: PlayerViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @ScaledMetric private var minLyricHeight: CGFloat = 200
+    @ScaledMetric private var coverMaxWidthCompact: CGFloat = 280
+    @ScaledMetric private var coverMaxWidthRegular: CGFloat = 360
+    @ScaledMetric private var playButtonSize: CGFloat = 64
     @State private var isFavorite = false
 
     var body: some View {
@@ -16,7 +20,7 @@ struct PlayerView: View {
                     progressSection
                     controlButtons
                     LyricView()
-                        .frame(minHeight: 200)
+                        .frame(minHeight: minLyricHeight)
                 }
                 .padding()
             }
@@ -76,7 +80,7 @@ struct PlayerView: View {
         } placeholder: {
             Color.secondary.opacity(0.2)
         }
-        .frame(maxWidth: horizontalSizeClass == .compact ? 280 : 360)
+        .frame(maxWidth: horizontalSizeClass == .compact ? coverMaxWidthCompact : coverMaxWidthRegular)
         .cornerRadius(16)
         .shadow(radius: 12)
     }
@@ -136,7 +140,7 @@ struct PlayerView: View {
                 viewModel.playPause()
             } label: {
                 Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.system(size: 64))
+                    .font(.system(size: playButtonSize))
             }
             .disabled(viewModel.currentSong == nil)
 
