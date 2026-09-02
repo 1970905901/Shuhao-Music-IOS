@@ -7,6 +7,7 @@ final class SearchViewModel: ObservableObject {
     @Published private(set) var songs: [Song] = []
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
+    @Published private(set) var hasSearched = false
     @Published private(set) var platform: MusicPlatform = PlatformStore.shared.selectedPlatform
 
     private var service: any MusicPlatformService = MusicServiceFactory.service(for: PlatformStore.shared.selectedPlatform)
@@ -19,6 +20,8 @@ final class SearchViewModel: ObservableObject {
                 self?.platform = platform
                 self?.service = MusicServiceFactory.service(for: platform)
                 self?.songs = []
+                self?.hasSearched = false
+                self?.errorMessage = nil
             }
             .store(in: &cancellables)
 
@@ -45,8 +48,10 @@ final class SearchViewModel: ObservableObject {
             do {
                 songs = try await service.search(keyword: trimmed)
                 isLoading = false
+                hasSearched = true
             } catch {
                 isLoading = false
+                hasSearched = true
                 errorMessage = error.localizedDescription
             }
         }

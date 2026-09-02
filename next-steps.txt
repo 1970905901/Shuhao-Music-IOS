@@ -266,9 +266,11 @@ anotherQQMusic 后续开发清单
     说明：当前 PlayerView 仅使用 .ultraThinMaterial，可增强为根据封面动态取色或模糊封面背景，
          提升 Apple Music 风格质感。
 
-[-] 9. 空态与错误态优化
-    说明：已新增 EmptyStateView，搜索无结果、网络失败、平台不支持等场景已使用；
-         剩余：为歌单为空、收藏为空等补充更明确的插图与文案。
+[x] 9. 空态与错误态优化
+    文件：Views/EmptyStateView.swift、Views/FavoritesView.swift、Views/HistoryView.swift、Views/SearchView.swift、ViewModels/SearchViewModel.swift
+    说明：已统一使用 EmptyStateView 替换裸文本/空白列表；
+         收藏为空、历史为空、搜索未找到、搜索初始态、搜索失败均补充了明确的图标与文案；
+         SearchViewModel 新增 hasSearched 区分“未搜索”与“无结果”两种空态，切换平台会重置该标志。
 
 [ ] 10. 列表加载更多（分页）
     文件：SearchViewModel.swift、PlaylistListViewModel.swift、ArtistDetailViewModel.swift

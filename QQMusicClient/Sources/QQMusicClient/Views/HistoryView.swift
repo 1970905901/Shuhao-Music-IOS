@@ -5,13 +5,23 @@ struct HistoryView: View {
     @EnvironmentObject private var playerViewModel: PlayerViewModel
 
     var body: some View {
-        List(viewModel.items) { item in
-            Button {
-                playerViewModel.play(song: item.song)
-            } label: {
-                SongRow(song: item.song)
+        Group {
+            if viewModel.items.isEmpty {
+                EmptyStateView(
+                    systemImage: "clock",
+                    title: "暂无播放记录",
+                    message: "播放过的歌曲会显示在这里，方便随时回听"
+                )
+            } else {
+                List(viewModel.items) { item in
+                    Button {
+                        playerViewModel.play(song: item.song)
+                    } label: {
+                        SongRow(song: item.song)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
             }
-            .buttonStyle(PlainButtonStyle())
         }
         .listStyle(.plain)
         .refreshable {

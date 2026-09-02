@@ -20,9 +20,26 @@ struct SearchView: View {
                     .padding()
                 Spacer()
             } else if let error = viewModel.errorMessage {
-                Text(error)
-                    .foregroundColor(.secondary)
-                    .padding()
+                EmptyStateView(
+                    systemImage: "exclamationmark.triangle",
+                    title: "加载失败",
+                    message: error
+                )
+                Spacer()
+            } else if viewModel.songs.isEmpty {
+                if viewModel.hasSearched {
+                    EmptyStateView(
+                        systemImage: "magnifyingglass",
+                        title: "未找到相关歌曲",
+                        message: "换个关键词或切换平台再试试"
+                    )
+                } else {
+                    EmptyStateView(
+                        systemImage: "magnifyingglass",
+                        title: "搜索歌曲、歌手",
+                        message: "在上方输入关键词，跨四个平台一起搜"
+                    )
+                }
                 Spacer()
             } else {
                 List(viewModel.songs) { song in
