@@ -22,9 +22,9 @@ struct Song: Identifiable, Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        mid = try container.decode(String.self, forKey: .mid)
-        name = try container.decode(String.self, forKey: .name)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? ""
+        mid = try container.decodeIfPresent(String.self, forKey: .mid) ?? ""
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
         subtitle = try container.decodeIfPresent(String.self, forKey: .subtitle)
         album = try container.decodeIfPresent(Album.self, forKey: .album)
         singers = try container.decodeIfPresent([Singer].self, forKey: .singers) ?? []

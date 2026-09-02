@@ -19,8 +19,8 @@ struct Playlist: Identifiable, Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        name = try container.decode(String.self, forKey: .name)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? ""
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
         if let urlString = try container.decodeIfPresent(String.self, forKey: .coverURL) {
             coverURL = URL(string: urlString)
         } else {
