@@ -23,6 +23,28 @@ struct Song: Identifiable, Codable, Equatable {
         case platform
     }
 
+    init(
+        id: String,
+        mid: String,
+        name: String,
+        subtitle: String?,
+        album: Album?,
+        singers: [Singer],
+        duration: Int?,
+        coverURL: URL?,
+        platform: MusicPlatform
+    ) {
+        self.id = id
+        self.mid = mid
+        self.name = name
+        self.subtitle = subtitle
+        self.album = album
+        self.singers = singers
+        self.duration = duration
+        self.coverURL = coverURL
+        self.platform = platform
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? ""
@@ -32,11 +54,9 @@ struct Song: Identifiable, Codable, Equatable {
         album = try container.decodeIfPresent(Album.self, forKey: .album)
         singers = try container.decodeIfPresent([Singer].self, forKey: .singers) ?? []
         duration = try container.decodeIfPresent(Int.self, forKey: .duration)
+        coverURL = nil
         // 旧版本持久化的历史/收藏没有该字段，默认按 QQ 音乐处理
-        let platform = try container.decodeIfPresent(MusicPlatform.self, forKey: .platform) ?? .qq
-        self.platform = platform
-        // 只有 QQ 音乐的 songmid 能拼出有效封面，其它平台交给播放器占位图
-        coverURL = platform == .qq ? QQMusicURL.coverURL(for: mid) : nil
+        platform = try container.decodeIfPresent(MusicPlatform.self, forKey: .platform) ?? .qq
     }
 
     var displayArtist: String {

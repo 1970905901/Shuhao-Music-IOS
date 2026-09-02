@@ -42,7 +42,7 @@ actor QQMusicAPIService: MusicPlatformService {
         let data = try await requestData(url: url)
 
         let decoded = try JSONDecoder().decode(SearchResponse.self, from: data)
-        let songs = decoded.songs
+        let songs = resolvedSongs(decoded.songs)
         await searchCache.setValue(songs, for: cacheKey)
         return songs
     }
@@ -158,7 +158,7 @@ actor QQMusicAPIService: MusicPlatformService {
         guard let playlist = decoded.playlist else {
             throw QQMusicError.decodeFailed
         }
-        let result = (playlist, decoded.songs)
+        let result = (playlist, resolvedSongs(decoded.songs))
         await playlistDetailCache.setValue(result, for: cacheKey)
         return result
     }
@@ -241,7 +241,7 @@ actor QQMusicAPIService: MusicPlatformService {
         }
 
         let playlist = Playlist(id: id, name: leaderboardName(for: id), coverURL: nil, songCount: songlist.count, listenCount: nil, creator: nil)
-        let songs = songlist.compactMap { item -> Song? in
+        let songs = resolvedSongs(songlist.compactMap { item -> Song? in
             guard let dataObj = item["data"] as? [String: Any],
                   let mid = dataObj["songmid"] as? String, !mid.isEmpty,
                   let name = dataObj["songname"] as? String else { return nil }
@@ -262,7 +262,7 @@ actor QQMusicAPIService: MusicPlatformService {
                 coverURL: nil,
                 platform: .qq
             )
-        }
+        })
         let result = (playlist, songs)
         await playlistDetailCache.setValue(result, for: cacheKey)
         return result
@@ -321,7 +321,7 @@ actor QQMusicAPIService: MusicPlatformService {
         guard let info = decoded.albumInfo else {
             throw QQMusicError.decodeFailed
         }
-        let result = (info, decoded.songs)
+        let result = (info, resolvedSongs(decoded.songs))
         await albumDetailCache.setValue(result, for: cacheKey)
         return result
     }
@@ -351,9 +351,14 @@ actor QQMusicAPIService: MusicPlatformService {
         guard let info = decoded.artistInfo else {
             throw QQMusicError.decodeFailed
         }
-        let result = (info, decoded.songs)
+        let result = (info, resolvedSongs(decoded.songs))
         await artistDetailCache.setValue(result, for: cacheKey)
         return result
+    }
+
+    nonisolated func coverURL(for song: Song) -> URL? {
+        guard song.platform == .qq else { return nil }
+        return QQMusicURL.coverURL(for: song.mid)
     }
 
     func lyric(for songMid: String) async throws -> [LyricLine] {
