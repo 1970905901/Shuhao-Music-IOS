@@ -20,7 +20,7 @@ alwaysApply: true
 - **布局设计**：采用 Apple Music 原生风格，使用 `.background(.ultraThinMaterial)` 材质高斯模糊、SF Symbols 3.0+ 图标，严禁写死固定宽高的硬编码尺寸。
 
 ## 3. 网络与多平台 API 规范
-- **网络请求**：使用 `URLSession.shared.data(from:)` 配合 `async/await`，不依赖第三方网络库。
+- **网络请求**：使用 `URLSession` 原生异步 API（如 `data(for:)`）配合 `async/await`，按需设置请求头；不依赖第三方网络库。
 - **数据容错**：`Codable` 解析必须对字段做 Optional 容错处理，防止各平台 API 变动或空字段导致解析失败。
 - **Header 伪造**：统一设置必要的请求头（如 Referer、User-Agent 及 Cookie 保持）；各平台按需设置对应 Referer，不强制使用 `y.qq.com`。
 - **业务解耦**：将音源 URL 动态获取、歌词解析（LRC）以及各平台搜索/歌单/专辑/歌手接口写在独立的 `Service` 类中，严禁耦合在 View 中。
