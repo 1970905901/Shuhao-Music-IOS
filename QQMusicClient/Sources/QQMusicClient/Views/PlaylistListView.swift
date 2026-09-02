@@ -40,6 +40,8 @@ struct PlaylistListView: View {
 }
 
 struct PlaylistRow: View {
+    @ScaledMetric private var coverSize: CGFloat = 80
+
     let playlist: Playlist
 
     var body: some View {
@@ -49,7 +51,7 @@ struct PlaylistRow: View {
             } placeholder: {
                 Color.secondary.opacity(0.2)
             }
-            .frame(width: 80, height: 80)
+            .frame(width: coverSize, height: coverSize)
             .cornerRadius(8)
 
             VStack(alignment: .leading, spacing: 6) {

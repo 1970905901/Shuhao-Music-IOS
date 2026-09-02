@@ -69,6 +69,8 @@ struct SearchView: View {
 }
 
 struct SongRow: View {
+    @ScaledMetric private var thumbnailSize: CGFloat = 56
+
     let song: Song
 
     var body: some View {
@@ -78,7 +80,7 @@ struct SongRow: View {
             } placeholder: {
                 Color.secondary.opacity(0.2)
             }
-            .frame(width: 56, height: 56)
+            .frame(width: thumbnailSize, height: thumbnailSize)
             .cornerRadius(8)
 
             VStack(alignment: .leading, spacing: 4) {
