@@ -21,15 +21,29 @@ final class SearchViewModel: ObservableObject {
                 self?.songs = []
             }
             .store(in: &cancellables)
+
+        $keyword
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .removeDuplicates()
+            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+            .sink { [weak self] keyword in
+                self?.performSearch(keyword: keyword)
+            }
+            .store(in: &cancellables)
     }
 
     func search() {
-        guard !keyword.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        performSearch(keyword: keyword)
+    }
+
+    private func performSearch(keyword: String) {
+        let trimmed = keyword.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
         isLoading = true
         errorMessage = nil
         Task {
             do {
-                songs = try await service.search(keyword: keyword)
+                songs = try await service.search(keyword: trimmed)
                 isLoading = false
             } catch {
                 isLoading = false

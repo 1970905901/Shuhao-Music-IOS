@@ -9,11 +9,23 @@ actor QQMusicAPIService: MusicPlatformService {
     private let guid = UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).description
     private var cookie: String?
 
+    private let searchCache = RequestCache<String, [Song]>()
+    private let playlistListCache = RequestCache<String, [Playlist]>()
+    private let playlistDetailCache = RequestCache<String, (playlist: Playlist, songs: [Song])>()
+    private let albumDetailCache = RequestCache<String, (info: AlbumInfo, songs: [Song])>()
+    private let artistDetailCache = RequestCache<String, (info: ArtistInfo, songs: [Song])>()
+    private let lyricCache = RequestCache<String, [LyricLine]>()
+
     func updateCookie(_ cookie: String) {
         self.cookie = cookie
     }
 
     func search(keyword: String, page: Int = 1, pageSize: Int = 20) async throws -> [Song] {
+        let cacheKey = "search:\(keyword):\(page):\(pageSize)"
+        if let cached = await searchCache.value(for: cacheKey) {
+            return cached
+        }
+
         guard var components = URLComponents(string: QQMusicURL.searchBase) else {
             throw QQMusicError.invalidURL
         }
@@ -30,7 +42,9 @@ actor QQMusicAPIService: MusicPlatformService {
         let data = try await requestData(url: url)
 
         let decoded = try JSONDecoder().decode(SearchResponse.self, from: data)
-        return decoded.songs
+        let songs = decoded.songs
+        await searchCache.setValue(songs, for: cacheKey)
+        return songs
     }
 
     func audioURL(for songMid: String) async throws -> URL {
@@ -89,6 +103,11 @@ actor QQMusicAPIService: MusicPlatformService {
     }
 
     func fetchPlaylists(page: Int = 1, pageSize: Int = 30) async throws -> [Playlist] {
+        let cacheKey = "playlists:\(page):\(pageSize)"
+        if let cached = await playlistListCache.value(for: cacheKey) {
+            return cached
+        }
+
         guard var components = URLComponents(string: QQMusicURL.playlistBase) else {
             throw QQMusicError.invalidURL
         }
@@ -103,10 +122,17 @@ actor QQMusicAPIService: MusicPlatformService {
         let data = try await requestData(url: url)
 
         let decoded = try JSONDecoder().decode(PlaylistListResponse.self, from: data)
-        return decoded.playlists
+        let playlists = decoded.playlists
+        await playlistListCache.setValue(playlists, for: cacheKey)
+        return playlists
     }
 
     func fetchPlaylistDetail(id: String) async throws -> (playlist: Playlist, songs: [Song]) {
+        let cacheKey = "playlist:\(id)"
+        if let cached = await playlistDetailCache.value(for: cacheKey) {
+            return cached
+        }
+
         guard var components = URLComponents(string: QQMusicURL.playlistDetailBase) else {
             throw QQMusicError.invalidURL
         }
@@ -127,10 +153,17 @@ actor QQMusicAPIService: MusicPlatformService {
         guard let playlist = decoded.playlist else {
             throw QQMusicError.decodeFailed
         }
-        return (playlist, decoded.songs)
+        let result = (playlist, decoded.songs)
+        await playlistDetailCache.setValue(result, for: cacheKey)
+        return result
     }
 
     func fetchAlbumDetail(albumMid: String) async throws -> (info: AlbumInfo, songs: [Song]) {
+        let cacheKey = "album:\(albumMid)"
+        if let cached = await albumDetailCache.value(for: cacheKey) {
+            return cached
+        }
+
         guard var components = URLComponents(string: QQMusicURL.albumDetailBase) else {
             throw QQMusicError.invalidURL
         }
@@ -147,10 +180,17 @@ actor QQMusicAPIService: MusicPlatformService {
         guard let info = decoded.albumInfo else {
             throw QQMusicError.decodeFailed
         }
-        return (info, decoded.songs)
+        let result = (info, decoded.songs)
+        await albumDetailCache.setValue(result, for: cacheKey)
+        return result
     }
 
     func fetchArtistDetail(singerMid: String, page: Int = 1, pageSize: Int = 30) async throws -> (info: ArtistInfo, songs: [Song]) {
+        let cacheKey = "artist:\(singerMid):\(page):\(pageSize)"
+        if let cached = await artistDetailCache.value(for: cacheKey) {
+            return cached
+        }
+
         guard var components = URLComponents(string: QQMusicURL.artistDetailBase) else {
             throw QQMusicError.invalidURL
         }
@@ -170,10 +210,17 @@ actor QQMusicAPIService: MusicPlatformService {
         guard let info = decoded.artistInfo else {
             throw QQMusicError.decodeFailed
         }
-        return (info, decoded.songs)
+        let result = (info, decoded.songs)
+        await artistDetailCache.setValue(result, for: cacheKey)
+        return result
     }
 
     func lyric(for songMid: String) async throws -> [LyricLine] {
+        let cacheKey = "lyric:\(songMid)"
+        if let cached = await lyricCache.value(for: cacheKey) {
+            return cached
+        }
+
         guard var components = URLComponents(string: QQMusicURL.lyricBase) else {
             throw QQMusicError.invalidURL
         }
@@ -196,7 +243,9 @@ actor QQMusicAPIService: MusicPlatformService {
             throw QQMusicError.decodeFailed
         }
 
-        return LyricLine.parse(lrcContent: lyricString)
+        let lyrics = LyricLine.parse(lrcContent: lyricString)
+        await lyricCache.setValue(lyrics, for: cacheKey)
+        return lyrics
     }
 
     private var gTk: String {
