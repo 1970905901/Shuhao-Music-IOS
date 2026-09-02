@@ -52,11 +52,53 @@ anotherQQMusic 后续开发清单
       - 酷我：搜索、歌词、歌单、专辑、歌手、排行榜列表已接入；排行榜详情需 wbd 加密；
       - QQ 音乐：搜索/歌单/专辑/歌手/歌词/排行榜 保持完整可用。
 
+[x] 规则合规性整改（.codebuddy/rules/ios-rules.mdc）
+    文件：
+      - .codebuddy/rules/ios-rules.mdc
+      - Views/PlaylistListView.swift、Views/PlaylistDetailView.swift、Views/LeaderboardListView.swift
+      - Views/CustomSourceSettingsView.swift、Views/ArtistDetailView.swift、Views/AlbumDetailView.swift
+      - Views/ContentView.swift
+      - Views/SearchView.swift、Views/PlaylistListView.swift、Views/PlayerView.swift、Views/EmptyStateView.swift
+      - Views/CustomSourceSettingsView.swift
+      - Views/PlayerView.swift、ViewModels/PlayerViewModel.swift
+    说明：
+      - 将 iOS 17 的 .onChange(of:) { } 改为 iOS 15 的 .onChange(of:perform:)；
+      - ContentView 中 PlatformStore 使用 @ObservedObject；
+      - 硬编码图片/字体/最小高度尺寸统一改为 @ScaledMetric；
+      - PlayerView 收藏逻辑下沉到 PlayerViewModel，避免 View 直接调用 Service；
+      - URLSession 规则文字与项目实际对齐（data(for:) 才能设置 Header）。
+
+[x] 封面 URL 架构重构
+    文件：
+      - .codebuddy/rules/ios-rules.mdc
+      - Services/MusicPlatformService.swift
+      - Services/QQMusicAPIService.swift
+      - Models/Song.swift
+    说明：
+      - 规则改为“各平台均按 QQ 音乐方式优先通过已验证模板或服务端 URL 设置 coverURL”；
+      - MusicPlatformService 新增 coverURL(for:) / resolvedSongs(_:)；
+      - QQMusicAPIService 实现 QQ 封面模板；
+      - Song 模型移除 platform 硬编码，封面由 Service 层注入；
+      - 网易云/酷狗/酷我暂无已验证歌曲封面模板，默认返回 nil。
+
+[x] 统一日志与列表下拉刷新
+    文件：
+      - Utils/MusicLogger.swift（新增）
+      - Utils/AudioSessionConfigurator.swift
+      - Views/SearchView.swift
+      - Views/PlaylistListView.swift
+      - Views/LeaderboardListView.swift
+      - Views/HistoryView.swift
+      - Views/FavoritesView.swift
+    说明：
+      - 用 os_log 统一封装 MusicLogger，替换 AudioSessionConfigurator 中的 print；
+      - 为搜索/歌单/排行榜/播放历史/我的收藏列表添加 .refreshable 下拉刷新。
+
 
 待完成清单
 
 
-零、"已完成功能"中的遗留未适配项（代码核查补充）
+零、“已完成功能”中的遗留未适配项（代码核查补充）
 ------------------------------
 说明：以下为「已完成功能」两项（自定义音源 / 多平台）中代码实际未适配的部分，
       逐项修复后这两项才算真正完成。
@@ -69,15 +111,17 @@ anotherQQMusic 后续开发清单
          不再受"当前选中平台"影响；各平台 Service 构造 Song 时显式传入自身平台。
     兼容说明：升级前持久化的历史/收藏没有 platform，会按 QQ 音乐处理，属已知限制。
 
-[x] A2. 非 QQ 平台封面走了 QQ 封面模板
-    文件：Models/Song.swift（init(from:)）
-    说明：coverURL 改为仅 platform == .qq 时拼接 QQ 封面，其它平台一律 nil 走播放器占位图。
+[x] A2. 非 QQ 平台封面处理
+    文件：Models/Song.swift、Services/MusicPlatformService.swift、Services/QQMusicAPIService.swift
+    说明：原逻辑 coverURL 仅在 platform == .qq 时拼接 QQ 封面；
+         已改为 MusicPlatformService.coverURL(for:) 协议方法，QQ 在 Service 中实现模板，
+         其它平台默认 nil；规则已同步更新为“各平台均可按 QQ 方式构造封面”。
 
 [x] A3. 未导入自定义音源时静默失败、无引导
     文件：ViewModels/PlayerViewModel.swift、Services/CustomSourceService.swift
     说明：本项目约定播放链接只来自自定义音源，QQMusicAPIService.audioURL(for:) 保留但明确不启用；
          新增 CustomSourceService.hasSource() 前置校验，无音源时抛出明确文案
-         "未导入自定义音源，请前往「自定义音源」导入 LxMusic JS 源后再播放"。
+         “未导入自定义音源，请前往「自定义音源」导入 LxMusic JS 源后再播放”。
 
 [x] A0. Info.plist 缺少 ATS 配置，http 接口被系统拦截（阻断级）
     文件：Shuhao-Music-IOS/ShuhaoMusic/Info.plist、QQMusicClient/Resources/Info.plist
@@ -91,7 +135,7 @@ anotherQQMusic 后续开发清单
          Views/SearchView.swift
     说明：新增 PlatformCapability 能力声明与各平台 capabilities；
          ViewModel 请求前先校验能力，不支持时展示 EmptyStateView；
-         SongRow 的"查看专辑/查看歌手"入口按能力显隐（A9 一并解决）。
+         SongRow 的“查看专辑/查看歌手”入口按能力显隐（A9 一并解决）。
          网易云接口本身需 weapi 加密（见 A13），目前仍只支持搜索与歌词。
 
 [x] A5. 酷我歌单广场缺失、酷狗歌单接口已失效
@@ -103,7 +147,7 @@ anotherQQMusic 后续开发清单
            改用 www2.kugou.kugou.com/yueku/v9/special/getSpecial
          - 酷狗歌单详情：mobilecdn .../playlist/songs 同样 Access Deny，
            改为解析官网页面内嵌的 global.data
-         歌单名不再写死"歌单"（酷狗从页面提取，酷我取 title）（A8 一并解决）。
+         歌单名不再写死“歌单”（酷狗从页面提取，酷我取 title）（A8 一并解决）。
 
 [x] A6. 平台选择未持久化
     文件：ViewModels/PlatformStore.swift
@@ -116,13 +160,13 @@ anotherQQMusic 后续开发清单
          音源不支持该平台时直接给出明确错误；
          设置页新增音质 Picker（自动 / 该平台可用音质），偏好存入 UserDefaults。
 
-[x] A8. 酷狗歌单详情名称写死"歌单" —— 见 A5
+[x] A8. 酷狗歌单详情名称写死“歌单” —— 见 A5
 
 [x] A9. 网易云 Singer/Album 的 mid 为 nil —— 见 A4（入口已按能力显隐）
 
-[ ] A10. 侧边栏标题硬编码
-    文件：Views/ContentView.swift（.navigationTitle("QQ 音乐")）
-    说明：未随当前平台变化。
+[x] A10. 侧边栏标题硬编码
+    文件：Views/ContentView.swift
+    说明：已改为 platformStore.selectedPlatform.displayName，随当前平台变化。
 
 [x] A11. MusicPlatform.usesSongMid 死代码
     文件：Models/MusicPlatform.swift
@@ -138,6 +182,11 @@ anotherQQMusic 后续开发清单
          酷狗排行榜详情走 mobilecdnbj.kugou.com/api/v3/rank/song（实测可用）；
          网易云/酷我排行榜详情分别依赖 weapi / wbd 加密，尚未实现，点击进入会提示暂不支持（A13/A14）。
 
+[x] A15. 酷我歌曲 ID 与自定义音源对齐
+    文件：Services/KuwoMusicService.swift
+    说明：LX 的 kw 音源使用纯数字 id（MUSICRID 去掉 MUSIC_ 前缀），
+         本项目搜索 / 歌单详情均已输出纯数字 id。升级前历史/收藏中的 MUSIC_ 格式歌曲播放可能受影响。
+
 [ ] A13. 实现网易云 weapi 加密，解锁歌单 / 专辑 / 歌手 / 排行榜详情
     文件：Services/NetEaseMusicService.swift（需新增加密辅助类）
     说明：实测网易云公开老接口已全面风控：/api/playlist/detail 返回 20001、
@@ -149,28 +198,21 @@ anotherQQMusic 后续开发清单
     说明：酷我排行榜详情接口 https://wbd.kuwo.cn/api/bd/bang/bang_info 需要 wbdCrypto，
          参考项目见 kw/util.js。
 
-[ ] A15. 酷我歌曲 ID 与自定义音源对齐
-    文件：Services/KuwoMusicService.swift
-    说明：LX 的 kw 音源使用纯数字 id（MUSICRID 去掉 MUSIC_ 前缀），
-         本项目此前使用 MUSIC_xxx 作为 mid，可能导致部分按 LX 约定实现的音源无法匹配；
-         已改为搜索 / 歌单详情均输出纯数字 id。升级前历史/收藏中的 MUSIC_ 格式歌曲播放可能受影响。
-
-[ ] A16. 非 QQ 平台歌曲封面在持久化后丢失
+[ ] A16. 非 QQ 平台歌曲封面在收藏/历史持久化后丢失
     文件：Models/Song.swift
-    说明：当前 Song 的 Codable 未编码 coverURL，跨平台歌曲的封面在收藏/历史持久化后会变为 nil；
-         如希望收藏列表显示封面，需把 coverURL 加入 CodingKeys 并在 decode 时按 platform 还原。
+    说明：Song.coverURL 仍未加入 CodingKeys；持久化后封面会丢失，下次从历史/收藏加载时依赖
+         MusicPlatformService.coverURL(for:) 重新解析。如需离线/历史列表显示封面，
+         需把 coverURL 加入 CodingKeys 并在 decode 时按 platform 还原。
 
 
 一、关键缺陷修复（优先）
 ------------------------------
 [x] 1. 修复锁屏封面显示
     文件：QQMusicClient/Sources/QQMusicClient/Services/AudioPlayerService.swift
-    说明：makeArtwork(from:) 当前直接返回 nil，需异步下载封面并生成 MPMediaItemArtwork，
-         更新 MPNowPlayingInfoCenter 的 nowPlayingInfo。
+    说明：已实现异步下载封面并生成 MPMediaItemArtwork，更新 MPNowPlayingInfoCenter 的 nowPlayingInfo。
 
 [x] 2. 初始化 Git 仓库并提交当前代码
-    说明：当前 d:/worka/1/anotherQQMusic 无 .git，需执行 git init / add / commit，
-         建立基础版本以便后续 diff、协作与 CI 触发。
+    说明：当前 d:/worka/1/anotherQQMusic 已纳入 Git 管理，main 分支持续推送中。
 
 [x] 3. 统一源代码引用，消除 Shuhao-Music-IOS/QQMusicClient 下的源码副本
     说明：当前工程目录与 Swift Package 中各存一份 Sources/QQMusicClient，建议：
@@ -200,17 +242,18 @@ anotherQQMusic 后续开发清单
 
 三、UI/UX 打磨
 ------------------------------
-[ ] 7. 移除硬编码尺寸
-    文件：Views/SearchView.swift（SongRow 56×56）、Views/PlaylistListView.swift（PlaylistRow 80×80）
-    说明：使用 Dynamic Type / GeometryReader / 比例约束适配不同屏幕与辅助功能字体。
+[x] 7. 移除硬编码尺寸
+    文件：Views/SearchView.swift、Views/PlaylistListView.swift、Views/PlayerView.swift、
+         Views/EmptyStateView.swift、Views/CustomSourceSettingsView.swift
+    说明：已使用 @ScaledMetric 替换固定宽高与字体尺寸，响应 Dynamic Type。
 
 [ ] 8. 播放器页增加背景毛玻璃/封面取色
     说明：当前 PlayerView 仅使用 .ultraThinMaterial，可增强为根据封面动态取色或模糊封面背景，
          提升 Apple Music 风格质感。
 
-[ ] 9. 空态与错误态优化
-    说明：搜索无结果、网络失败、歌单为空等场景增加插图与明确提示文案，
-         避免仅显示 secondary 文本或 ProgressView。
+[-] 9. 空态与错误态优化
+    说明：已新增 EmptyStateView，搜索无结果、网络失败、平台不支持等场景已使用；
+         剩余：为歌单为空、收藏为空等补充更明确的插图与文案。
 
 [ ] 10. 列表加载更多（分页）
     文件：SearchViewModel.swift、PlaylistListViewModel.swift、ArtistDetailViewModel.swift
@@ -258,7 +301,7 @@ anotherQQMusic 后续开发清单
 
 建议迭代节奏
 ------------------------------
-第 1 周：完成 1-7（缺陷修复 + 健壮性）
-第 2 周：完成 8-13（体验打磨）
+第 1 周：完成 A13/A14 + 8-10（加密接口 + UI/UX）
+第 2 周：完成 11-13（音频体验）
 第 3 周：完成 14-17（工程化与测试）
 后续：按需从“可选增强”中挑选。
