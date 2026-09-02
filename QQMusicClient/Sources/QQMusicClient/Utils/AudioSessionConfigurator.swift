@@ -8,7 +8,7 @@ public enum AudioSessionConfigurator {
             try session.setCategory(.playback, mode: .default, options: [.allowAirPlay])
             try session.setActive(true)
         } catch {
-            print("Audio session configuration failed: \(error)")
+            MusicLogger.audioSessionError(error)
         }
     }
 }
