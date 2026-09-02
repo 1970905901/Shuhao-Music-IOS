@@ -130,13 +130,14 @@ anotherQQMusic 后续开发清单
          已补 NSAllowsArbitraryLoads（与参考项目 LX-Y Music 一致）。
          后续可收敛为 NSExceptionDomains 白名单以降低审核风险。
 
-[x] A4. 网易云缺失 4 项能力且 UI 无降级（降级已完成，接口待 weapi 加密）
+[x] A4. 网易云缺失 4 项能力且 UI 无降级（weapi 加密已接入）
     文件：Models/MusicPlatform.swift、Views/EmptyStateView.swift（新增）、各详情页 ViewModel 与 View、
-         Views/SearchView.swift
+         Views/SearchView.swift、Services/NetEaseMusicService.swift、Utils/NetEaseWeapiCrypto.swift、
+         QQMusicClient/Sources/CCommonCrypto/*
     说明：新增 PlatformCapability 能力声明与各平台 capabilities；
          ViewModel 请求前先校验能力，不支持时展示 EmptyStateView；
-         SongRow 的“查看专辑/查看歌手”入口按能力显隐（A9 一并解决）。
-         网易云接口本身需 weapi 加密（见 A13），目前仍只支持搜索与歌词。
+         SongRow 的“查看专辑/查看歌手”入口按能力显隐（A9 一并解决）；
+         已通过 weapi 加密接入网易云歌单详情、专辑详情、歌手详情、排行榜详情。
 
 [x] A5. 酷我歌单广场缺失、酷狗歌单接口已失效
     文件：Services/KuwoMusicService.swift、Services/KugouMusicService.swift
@@ -172,26 +173,40 @@ anotherQQMusic 后续开发清单
     文件：Models/MusicPlatform.swift
     说明：已删除；其职责由 Song.platform 承担。
 
-[x] A12. 四平台排行榜入口与 QQ/酷狗详情
+[x] A12. 四平台排行榜入口与 QQ/酷狗/网易云详情
     文件：Services/MusicPlatformService.swift、Models/MusicPlatform.swift、Models/LeaderboardDefinitions.swift（新增）、
-         Services/QQMusicAPIService.swift、Services/KugouMusicService.swift、
+         Services/QQMusicAPIService.swift、Services/KugouMusicService.swift、Services/NetEaseMusicService.swift、
+         Utils/NetEaseWeapiCrypto.swift（新增）、QQMusicClient/Sources/CCommonCrypto/*（新增）、
          Views/LeaderboardListView.swift（新增）、ViewModels/LeaderboardListViewModel.swift（新增）、Views/ContentView.swift
     说明：协议新增 fetchLeaderboards / fetchLeaderboardDetail，MusicPlatform 新增 .leaderboard 能力；
          各平台硬编码热门榜单列表（参考项目 leaderboard.js）；
          QQ 音乐排行榜详情走 fcg_v8_toplist_cp.fcg（实测可用，date 留空取最新一期）；
          酷狗排行榜详情走 mobilecdnbj.kugou.com/api/v3/rank/song（实测可用）；
-         网易云/酷我排行榜详情分别依赖 weapi / wbd 加密，尚未实现，点击进入会提示暂不支持（A13/A14）。
+         网易云排行榜详情复用 weapi 歌单详情（/weapi/v3/playlist/detail）已接入；
+         酷我排行榜详情仍依赖 wbd 加密，尚未实现（见 A14）。
 
 [x] A15. 酷我歌曲 ID 与自定义音源对齐
     文件：Services/KuwoMusicService.swift
     说明：LX 的 kw 音源使用纯数字 id（MUSICRID 去掉 MUSIC_ 前缀），
          本项目搜索 / 歌单详情均已输出纯数字 id。升级前历史/收藏中的 MUSIC_ 格式歌曲播放可能受影响。
 
-[ ] A13. 实现网易云 weapi 加密，解锁歌单 / 专辑 / 歌手 / 排行榜详情
-    文件：Services/NetEaseMusicService.swift（需新增加密辅助类）
-    说明：实测网易云公开老接口已全面风控：/api/playlist/detail 返回 20001、
-         /api/playlist/list 返回 500、/api/album/{id} 返回 -462、/api/artists 返回 404；
-         必须移植 weapi 加密（AES-128-CBC + RSA）才能接入。可参考 wy/utils/crypto.js。
+[x] A13. 实现网易云 weapi 加密，解锁歌单 / 专辑 / 歌手 / 排行榜详情
+    文件：
+      - Utils/NetEaseWeapiCrypto.swift（新增）
+      - Services/NetEaseMusicService.swift
+      - Models/MusicPlatform.swift
+      - Models/AlbumDetail.swift
+      - Models/ArtistDetail.swift
+      - QQMusicClient/Sources/CCommonCrypto/shim.h（新增）
+      - QQMusicClient/Sources/CCommonCrypto/module.modulemap（新增）
+      - QQMusicClient/Package.swift
+    说明：
+      - 新增 CCommonCrypto 系统库封装，用于 AES-128-CBC；
+      - 使用 Security.SecKey 完成 RSA raw 加密（公钥来自公开参考）；
+      - 网易云搜索/歌词继续使用公开 API；
+      - 网易云歌单/专辑/歌手/排行榜详情走 /weapi/*；
+      - 详情解析后自动写入 album.picUrl 作为 coverURL；
+      - MusicPlatform.netease capabilities 已追加 .playlistDetail / .album / .artist。
 
 [ ] A14. 实现酷我 wbd 加密，解锁排行榜详情
     文件：Services/KuwoMusicService.swift（需新增加密辅助类）

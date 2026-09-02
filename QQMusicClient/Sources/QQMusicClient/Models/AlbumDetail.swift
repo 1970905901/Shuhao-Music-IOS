@@ -38,6 +38,14 @@ struct AlbumInfo: Codable, Identifiable {
         case coverURL = "albumPic"
     }
 
+    init(id: String?, mid: String?, name: String?, singerName: String?, coverURL: URL?) {
+        self.id = id
+        self.mid = mid
+        self.name = name
+        self.singerName = singerName
+        self.coverURL = coverURL
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id)

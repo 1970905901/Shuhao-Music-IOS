@@ -29,7 +29,7 @@ enum MusicPlatform: String, CaseIterable, Identifiable, Codable, Equatable {
         case .kuwo:
             return [.search, .playlist, .playlistDetail, .album, .artist, .lyric, .leaderboard]
         case .netease:
-            return [.search, .lyric, .leaderboard]
+            return [.search, .lyric, .leaderboard, .playlistDetail, .album, .artist]
         }
     }
 

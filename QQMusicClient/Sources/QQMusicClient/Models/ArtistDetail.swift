@@ -36,6 +36,13 @@ struct ArtistInfo: Codable, Identifiable {
         case coverURL = "pic"
     }
 
+    init(id: String?, mid: String?, name: String?, coverURL: URL?) {
+        self.id = id
+        self.mid = mid
+        self.name = name
+        self.coverURL = coverURL
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id)

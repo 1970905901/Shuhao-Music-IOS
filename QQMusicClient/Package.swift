@@ -9,6 +9,7 @@ let package = Package(
     ],
     dependencies: [],
     targets: [
-        .target(name: "QQMusicClient"),
+        .target(name: "QQMusicClient", dependencies: ["CCommonCrypto"]),
+        .systemLibrary(name: "CCommonCrypto", path: "Sources/CCommonCrypto"),
     ]
 )
