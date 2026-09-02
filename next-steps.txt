@@ -58,16 +58,16 @@ anotherQQMusic 后续开发清单
 
 一、关键缺陷修复（优先）
 ------------------------------
-[ ] 1. 修复锁屏封面显示
+[x] 1. 修复锁屏封面显示
     文件：QQMusicClient/Sources/QQMusicClient/Services/AudioPlayerService.swift
     说明：makeArtwork(from:) 当前直接返回 nil，需异步下载封面并生成 MPMediaItemArtwork，
          更新 MPNowPlayingInfoCenter 的 nowPlayingInfo。
 
-[ ] 2. 初始化 Git 仓库并提交当前代码
+[x] 2. 初始化 Git 仓库并提交当前代码
     说明：当前 d:/worka/1/anotherQQMusic 无 .git，需执行 git init / add / commit，
          建立基础版本以便后续 diff、协作与 CI 触发。
 
-[ ] 3. 统一源代码引用，消除 Shuhao-Music-IOS/QQMusicClient 下的源码副本
+[x] 3. 统一源代码引用，消除 Shuhao-Music-IOS/QQMusicClient 下的源码副本
     说明：当前工程目录与 Swift Package 中各存一份 Sources/QQMusicClient，建议：
          - 删除 Shuhao-Music-IOS/QQMusicClient/Sources/QQMusicClient 副本；
          - project.yml 通过 local package 引用根目录 QQMusicClient；
@@ -76,18 +76,18 @@ anotherQQMusic 后续开发清单
 
 二、网络与 API 健壮性
 ------------------------------
-[ ] 4. 动态 Cookie / guid / g_tk 管理
+[x] 4. 动态 Cookie / guid / g_tk 管理
     文件：QQMusicClient/Sources/QQMusicClient/Services/QQMusicAPIService.swift
     说明：g_tk 目前写死 5381，实际接口可能返回登录态异常；建议增加：
          - 从 Cookie 计算 g_tk 的方法；
          - 可注入/更新 Cookie 的入口；
          - 失败的统一重试与错误提示。
 
-[ ] 5. 增加请求缓存与限流
+[x] 5. 增加请求缓存与限流
     说明：为歌单列表、专辑详情等增加内存/磁盘缓存，减少重复请求；
          搜索输入框增加 debounce，避免快速输入时并发请求。
 
-[ ] 6. 完善 Codable 容错
+[x] 6. 完善 Codable 容错
     文件：Models/*.swift
     说明：部分模型（如 AlbumInfo、ArtistInfo）字段使用 try 强转，建议全部改为 decodeIfPresent，
          避免官方 API 字段缺失时整段解析失败。
