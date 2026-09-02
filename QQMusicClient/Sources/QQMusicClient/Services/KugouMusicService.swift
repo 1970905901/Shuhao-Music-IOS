@@ -193,7 +193,8 @@ actor KugouMusicService: MusicPlatformService {
                 album: Album(id: albumId, mid: albumId, name: albumName),
                 singers: [Singer(id: singerId, mid: singerId, name: singerName)],
                 duration: duration,
-                coverURL: nil
+                coverURL: nil,
+                platform: .kugou
             )
         }
     }

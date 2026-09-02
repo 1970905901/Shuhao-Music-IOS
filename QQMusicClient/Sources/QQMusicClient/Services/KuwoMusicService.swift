@@ -74,7 +74,8 @@ actor KuwoMusicService: MusicPlatformService {
                 album: Album(id: nil, mid: nil, name: album),
                 singers: [Singer(id: nil, mid: nil, name: artist)],
                 duration: duration,
-                coverURL: nil
+                coverURL: nil,
+                platform: .kuwo
             )
         } ?? []
 
@@ -202,7 +203,8 @@ actor KuwoMusicService: MusicPlatformService {
                 album: Album(id: albumId, mid: albumId, name: album),
                 singers: [Singer(id: artistId, mid: artistId, name: artist)],
                 duration: duration,
-                coverURL: nil
+                coverURL: nil,
+                platform: .kuwo
             )
         }
     }

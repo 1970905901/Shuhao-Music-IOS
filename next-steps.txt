@@ -56,6 +56,62 @@ anotherQQMusic 后续开发清单
 待完成清单
 
 
+零、"已完成功能"中的遗留未适配项（代码核查补充）
+------------------------------
+说明：以下为「已完成功能」两项（自定义音源 / 多平台）中代码实际未适配的部分，
+      逐项修复后这两项才算真正完成。
+
+[x] A1. Song 缺少 platform 字段
+    文件：Models/Song.swift、ViewModels/PlayerViewModel.swift、Services/KugouMusicService.swift、
+         Services/KuwoMusicService.swift、Services/NetEaseMusicService.swift、Services/MusicServiceFactory.swift
+    说明：已为 Song 增加 platform 字段并参与 Codable（旧历史/收藏数据缺该字段时默认 .qq）；
+         播放链接与歌词改为按 song.platform 选取自定义音源 sourceCode 与歌词 service，
+         不再受"当前选中平台"影响；各平台 Service 构造 Song 时显式传入自身平台。
+    兼容说明：升级前持久化的历史/收藏没有 platform，会按 QQ 音乐处理，属已知限制。
+
+[x] A2. 非 QQ 平台封面走了 QQ 封面模板
+    文件：Models/Song.swift（init(from:)）
+    说明：coverURL 改为仅 platform == .qq 时拼接 QQ 封面，其它平台一律 nil 走播放器占位图。
+
+[x] A3. 未导入自定义音源时静默失败、无引导
+    文件：ViewModels/PlayerViewModel.swift、Services/CustomSourceService.swift
+    说明：本项目约定播放链接只来自自定义音源，QQMusicAPIService.audioURL(for:) 保留但明确不启用；
+         新增 CustomSourceService.hasSource() 前置校验，无音源时抛出明确文案
+         "未导入自定义音源，请前往「自定义音源」导入 LxMusic JS 源后再播放"。
+
+[ ] A4. 网易云缺失 4 项能力且 UI 无降级
+    文件：Services/NetEaseMusicService.swift
+    说明：歌单 / 歌单详情 / 专辑 / 歌手均走协议默认实现抛"暂不支持"，
+         但 PlatformPicker 仍可切到网易云并进入这些页面，需禁用入口或补空态提示。
+
+[ ] A5. 酷我歌单广场返回空数组无空态
+    文件：Services/KuwoMusicService.swift（fetchPlaylists 直接 return []）
+    说明：歌单页切到酷我后空白一片，应给出明确提示文案。
+
+[ ] A6. 平台选择未持久化
+    文件：ViewModels/PlatformStore.swift
+    说明：selectedPlatform 每次启动回退 .qq，需写入 UserDefaults。
+
+[ ] A7. 音质硬编码 "flac"
+    文件：Services/CustomSourceService.swift（audioURL 默认参数）
+    说明：未使用已解析的 ParsedLxMusicSource.qualitys，源不支持 flac 时直接失败；
+         应按平台取该源支持的音质并允许用户在设置中选择。
+
+[ ] A8. 酷狗歌单详情名称写死"歌单"
+    文件：Services/KugouMusicService.swift（fetchPlaylistDetail）
+
+[ ] A9. 网易云 Singer/Album 的 mid 为 nil
+    文件：Services/NetEaseMusicService.swift（search 中 Singer(id:nil, mid:nil)）
+    说明：SongRow 的"查看专辑 / 查看歌手"入口依赖 mid，网易云下这两个入口不可见。
+
+[ ] A10. 侧边栏标题硬编码
+    文件：Views/ContentView.swift（.navigationTitle("QQ 音乐")）
+    说明：未随当前平台变化。
+
+[ ] A11. MusicPlatform.usesSongMid 定义后无引用（死代码）
+    文件：Models/MusicPlatform.swift
+
+
 一、关键缺陷修复（优先）
 ------------------------------
 [x] 1. 修复锁屏封面显示

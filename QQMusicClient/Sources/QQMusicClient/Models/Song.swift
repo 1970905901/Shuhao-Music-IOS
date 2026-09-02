@@ -9,6 +9,8 @@ struct Song: Identifiable, Codable, Equatable {
     let singers: [Singer]
     let duration: Int?
     let coverURL: URL?
+    /// 歌曲所属平台：决定自定义音源的 sourceCode 与歌词/详情接口的选取
+    let platform: MusicPlatform
 
     enum CodingKeys: String, CodingKey {
         case id = "songid"
@@ -18,6 +20,7 @@ struct Song: Identifiable, Codable, Equatable {
         case album
         case singers = "singer"
         case duration = "interval"
+        case platform
     }
 
     init(from decoder: Decoder) throws {
@@ -29,7 +32,11 @@ struct Song: Identifiable, Codable, Equatable {
         album = try container.decodeIfPresent(Album.self, forKey: .album)
         singers = try container.decodeIfPresent([Singer].self, forKey: .singers) ?? []
         duration = try container.decodeIfPresent(Int.self, forKey: .duration)
-        coverURL = QQMusicURL.coverURL(for: mid)
+        // 旧版本持久化的历史/收藏没有该字段，默认按 QQ 音乐处理
+        let platform = try container.decodeIfPresent(MusicPlatform.self, forKey: .platform) ?? .qq
+        self.platform = platform
+        // 只有 QQ 音乐的 songmid 能拼出有效封面，其它平台交给播放器占位图
+        coverURL = platform == .qq ? QQMusicURL.coverURL(for: mid) : nil
     }
 
     var displayArtist: String {

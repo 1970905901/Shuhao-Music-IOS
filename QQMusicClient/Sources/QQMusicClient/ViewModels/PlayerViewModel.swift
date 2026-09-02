@@ -15,7 +15,6 @@ public final class PlayerViewModel: ObservableObject {
     @Published private(set) var platform: MusicPlatform = PlatformStore.shared.selectedPlatform
 
     private let customSourceService = CustomSourceService.shared
-    private var service: any MusicPlatformService = MusicServiceFactory.service(for: PlatformStore.shared.selectedPlatform)
     private let audioService = AudioPlayerService.shared
     private var cancellables = Set<AnyCancellable>()
 
@@ -61,7 +60,6 @@ public final class PlayerViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] platform in
                 self?.platform = platform
-                self?.service = MusicServiceFactory.service(for: platform)
             }
             .store(in: &cancellables)
     }
@@ -112,7 +110,7 @@ public final class PlayerViewModel: ObservableObject {
         errorMessage = nil
         Task {
             do {
-                let url = try await customSourceService.audioURL(for: song, platform: platform)
+                let url = try await resolveAudioURL(for: song)
                 await audioService.play(song: song, url: url)
                 isLoading = false
             } catch {
@@ -122,8 +120,19 @@ public final class PlayerViewModel: ObservableObject {
         }
     }
 
+    /// 播放链接统一来自自定义音源：按歌曲自身所属平台选择 sourceCode，
+    /// 避免历史/收藏中的跨平台歌曲被当前平台误解析。
+    private func resolveAudioURL(for song: Song) async throws -> URL {
+        let hasSource = await customSourceService.hasSource()
+        guard hasSource else {
+            throw QQMusicError.custom(message: "未导入自定义音源，请前往「自定义音源」导入 LxMusic JS 源后再播放")
+        }
+        return try await customSourceService.audioURL(for: song, platform: song.platform)
+    }
+
     private func loadLyric(for song: Song) {
         lyrics = []
+        let service = MusicServiceFactory.service(for: song.platform)
         Task {
             do {
                 lyrics = try await service.lyric(for: song.mid)

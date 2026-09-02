@@ -28,6 +28,10 @@ actor CustomSourceService {
         UserDefaults.standard.removeObject(forKey: sourceKey)
     }
 
+    func hasSource() -> Bool {
+        loadSource() != nil
+    }
+
     // MARK: - Playback URL
 
     /// 使用已导入的自定义源获取指定歌曲的播放 URL

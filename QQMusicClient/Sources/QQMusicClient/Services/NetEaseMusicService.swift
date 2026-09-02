@@ -47,7 +47,8 @@ actor NetEaseMusicService: MusicPlatformService {
                 album: Album(id: albumId.map(String.init), mid: nil, name: albumName),
                 singers: [Singer(id: nil, mid: nil, name: singerName)],
                 duration: duration.map { $0 / 1000 },
-                coverURL: nil
+                coverURL: nil,
+                platform: .netease
             )
         }
     }
