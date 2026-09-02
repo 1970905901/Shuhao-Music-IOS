@@ -14,6 +14,9 @@ struct FavoritesView: View {
             .buttonStyle(PlainButtonStyle())
         }
         .listStyle(.plain)
+        .refreshable {
+            viewModel.load()
+        }
         .navigationTitle("我的收藏")
         .onAppear {
             viewModel.load()

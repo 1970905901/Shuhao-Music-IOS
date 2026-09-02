@@ -17,6 +17,9 @@ struct LeaderboardListView: View {
                 }
             }
             .listStyle(.plain)
+            .refreshable {
+                viewModel.load()
+            }
         }
         .navigationTitle("排行榜")
         .onAppear {

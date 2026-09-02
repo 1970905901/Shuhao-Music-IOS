@@ -34,6 +34,9 @@ struct SearchView: View {
                     .buttonStyle(PlainButtonStyle())
                 }
                 .listStyle(.plain)
+                .refreshable {
+                    viewModel.search()
+                }
             }
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())

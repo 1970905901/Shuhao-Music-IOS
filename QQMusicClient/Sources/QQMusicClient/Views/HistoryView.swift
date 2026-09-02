@@ -14,6 +14,9 @@ struct HistoryView: View {
             .buttonStyle(PlainButtonStyle())
         }
         .listStyle(.plain)
+        .refreshable {
+            viewModel.load()
+        }
         .navigationTitle("播放历史")
         .onAppear {
             viewModel.load()

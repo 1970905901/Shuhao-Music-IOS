@@ -17,6 +17,9 @@ struct PlaylistListView: View {
                 }
             }
             .listStyle(.plain)
+            .refreshable {
+                viewModel.load()
+            }
         }
         .navigationTitle("歌单")
         .onAppear {
