@@ -13,9 +13,11 @@ public final class PlayerViewModel: ObservableObject {
     @Published private(set) var queue: [Song] = []
     @Published private(set) var currentIndex: Int = -1
     @Published private(set) var platform: MusicPlatform = PlatformStore.shared.selectedPlatform
+    @Published private(set) var isFavorite = false
 
     private let customSourceService = CustomSourceService.shared
     private let audioService = AudioPlayerService.shared
+    private let historyService = HistoryService.shared
     private var cancellables = Set<AnyCancellable>()
 
     public init() {
@@ -25,6 +27,9 @@ public final class PlayerViewModel: ObservableObject {
                 self?.currentSong = song
                 if let song = song {
                     self?.loadLyric(for: song)
+                    self?.refreshFavorite(for: song)
+                } else {
+                    self?.isFavorite = false
                 }
             }
             .store(in: &cancellables)
@@ -103,6 +108,19 @@ public final class PlayerViewModel: ObservableObject {
         lyrics = []
         queue = []
         currentIndex = -1
+    }
+
+    func toggleFavorite() {
+        guard let song = currentSong else { return }
+        Task {
+            isFavorite = await historyService.toggleFavorite(song: song)
+        }
+    }
+
+    private func refreshFavorite(for song: Song) {
+        Task {
+            isFavorite = await historyService.isFavorite(song: song)
+        }
     }
 
     private func loadAndPlay(song: Song) {

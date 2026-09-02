@@ -7,7 +7,6 @@ struct PlayerView: View {
     @ScaledMetric private var coverMaxWidthCompact: CGFloat = 280
     @ScaledMetric private var coverMaxWidthRegular: CGFloat = 360
     @ScaledMetric private var playButtonSize: CGFloat = 64
-    @State private var isFavorite = false
 
     var body: some View {
         ZStack {
@@ -30,10 +29,10 @@ struct PlayerView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 16) {
                     Button {
-                        toggleFavorite()
+                        viewModel.toggleFavorite()
                     } label: {
-                        Image(systemName: isFavorite ? "heart.fill" : "heart")
-                            .foregroundColor(isFavorite ? .pink : .primary)
+                        Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
+                            .foregroundColor(viewModel.isFavorite ? .pink : .primary)
                     }
                     .disabled(viewModel.currentSong == nil)
 
@@ -42,29 +41,6 @@ struct PlayerView: View {
                     }
                 }
             }
-        }
-        .onAppear {
-            updateFavoriteState()
-        }
-        .onChange(of: viewModel.currentSong, perform: { _ in
-            updateFavoriteState()
-        })
-    }
-
-    private func toggleFavorite() {
-        guard let song = viewModel.currentSong else { return }
-        Task {
-            isFavorite = await HistoryService.shared.toggleFavorite(song: song)
-        }
-    }
-
-    private func updateFavoriteState() {
-        guard let song = viewModel.currentSong else {
-            isFavorite = false
-            return
-        }
-        Task {
-            isFavorite = await HistoryService.shared.isFavorite(song: song)
         }
     }
 
