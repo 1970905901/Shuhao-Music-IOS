@@ -1,0 +1,159 @@
+anotherQQMusic 后续开发清单
+==============================
+按推荐优先级排序，逐项完成后可勾选。
+
+
+已完成功能
+------------------------------
+[x] 自定义音源（LxMusic JS 源导入）
+    文件：
+      - Services/LxMusicSourceParser.swift
+      - Services/CustomSourceService.swift
+      - Views/CustomSourceSettingsView.swift
+      - ViewModels/PlayerViewModel.swift
+      - Views/ContentView.swift
+      - Utils/Constants.swift
+    说明：
+      - 支持从 ikun-music-source.js 这类 LxMusic 源脚本中提取 API_URL、API_KEY、MUSIC_QUALITY；
+      - 播放时只使用自定义音源 POST /music/url 获取真实播放链接；
+      - 通过“自定义音源”设置页粘贴 JS 内容完成导入；
+      - 当前已将新增/修改文件同步到 Shuhao-Music-IOS 工程副本。
+
+[x] 多平台支持（QQ / 网易云 / 酷狗 / 酷我）
+    文件：
+      - Models/MusicPlatform.swift
+      - Services/MusicPlatformService.swift
+      - Services/MusicServiceFactory.swift
+      - Services/NetEaseMusicService.swift
+      - Services/KugouMusicService.swift
+      - Services/KuwoMusicService.swift
+      - Services/QQMusicAPIService.swift（已适配协议）
+      - ViewModels/PlatformStore.swift
+      - ViewModels/SearchViewModel.swift
+      - ViewModels/PlaylistListViewModel.swift
+      - ViewModels/PlaylistDetailViewModel.swift
+      - ViewModels/AlbumDetailViewModel.swift
+      - ViewModels/ArtistDetailViewModel.swift
+      - ViewModels/PlayerViewModel.swift
+      - Views/PlatformPicker.swift
+      - Views/SearchView.swift
+      - Views/PlaylistListView.swift
+      - Views/PlaylistDetailView.swift
+      - Views/AlbumDetailView.swift
+      - Views/ArtistDetailView.swift
+      - Views/PlayerView.swift
+      - Services/CustomSourceService.swift（按平台选择 sourceCode）
+    说明：
+      - 新增 MusicPlatform 枚举与 MusicPlatformService 协议；
+      - 各列表/详情页增加 PlatformPicker 切换平台；
+      - 播放器根据当前平台调用自定义音源对应 source（tx/wy/kg/kw）；
+      - 网易云：搜索/歌词/歌单/专辑/歌手 待接入（需 weapi 加密）；
+      - 酷狗：搜索已接入基础端点，歌词/歌单/专辑/歌手 待接入；
+      - 酷我：搜索已接入基础端点，歌词/歌单/专辑/歌手 待接入；
+      - QQ 音乐：搜索/歌单/专辑/歌手/歌词 保持完整可用。
+
+
+待完成清单
+
+
+一、关键缺陷修复（优先）
+------------------------------
+[ ] 1. 修复锁屏封面显示
+    文件：QQMusicClient/Sources/QQMusicClient/Services/AudioPlayerService.swift
+    说明：makeArtwork(from:) 当前直接返回 nil，需异步下载封面并生成 MPMediaItemArtwork，
+         更新 MPNowPlayingInfoCenter 的 nowPlayingInfo。
+
+[ ] 2. 初始化 Git 仓库并提交当前代码
+    说明：当前 d:/worka/1/anotherQQMusic 无 .git，需执行 git init / add / commit，
+         建立基础版本以便后续 diff、协作与 CI 触发。
+
+[ ] 3. 统一源代码引用，消除 Shuhao-Music-IOS/QQMusicClient 下的源码副本
+    说明：当前工程目录与 Swift Package 中各存一份 Sources/QQMusicClient，建议：
+         - 删除 Shuhao-Music-IOS/QQMusicClient/Sources/QQMusicClient 副本；
+         - project.yml 通过 local package 引用根目录 QQMusicClient；
+         避免同一份代码双轨维护导致漏改。
+
+
+二、网络与 API 健壮性
+------------------------------
+[ ] 4. 动态 Cookie / guid / g_tk 管理
+    文件：QQMusicClient/Sources/QQMusicClient/Services/QQMusicAPIService.swift
+    说明：g_tk 目前写死 5381，实际接口可能返回登录态异常；建议增加：
+         - 从 Cookie 计算 g_tk 的方法；
+         - 可注入/更新 Cookie 的入口；
+         - 失败的统一重试与错误提示。
+
+[ ] 5. 增加请求缓存与限流
+    说明：为歌单列表、专辑详情等增加内存/磁盘缓存，减少重复请求；
+         搜索输入框增加 debounce，避免快速输入时并发请求。
+
+[ ] 6. 完善 Codable 容错
+    文件：Models/*.swift
+    说明：部分模型（如 AlbumInfo、ArtistInfo）字段使用 try 强转，建议全部改为 decodeIfPresent，
+         避免官方 API 字段缺失时整段解析失败。
+
+
+三、UI/UX 打磨
+------------------------------
+[ ] 7. 移除硬编码尺寸
+    文件：Views/SearchView.swift（SongRow 56×56）、Views/PlaylistListView.swift（PlaylistRow 80×80）
+    说明：使用 Dynamic Type / GeometryReader / 比例约束适配不同屏幕与辅助功能字体。
+
+[ ] 8. 播放器页增加背景毛玻璃/封面取色
+    说明：当前 PlayerView 仅使用 .ultraThinMaterial，可增强为根据封面动态取色或模糊封面背景，
+         提升 Apple Music 风格质感。
+
+[ ] 9. 空态与错误态优化
+    说明：搜索无结果、网络失败、歌单为空等场景增加插图与明确提示文案，
+         避免仅显示 secondary 文本或 ProgressView。
+
+[ ] 10. 列表加载更多（分页）
+    文件：SearchViewModel.swift、PlaylistListViewModel.swift、ArtistDetailViewModel.swift
+    说明：搜索、歌单、歌手歌曲均只拉取第一页，增加 onAppear 触发下一页加载。
+
+
+四、音频播放体验
+------------------------------
+[ ] 11. 播放模式切换（顺序 / 随机 / 单曲循环）
+    文件：PlayerViewModel.swift / AudioPlayerService.swift
+    说明：在 PlayerView 工具栏增加 shuffle / repeat 按钮，playbackFinished 时按模式处理。
+
+[ ] 12. 后台播放进度恢复与中断处理
+    文件：AudioPlayerService.swift / AppDelegate
+    说明：处理电话、闹钟、AirPods 切换等 AVAudioSession 中断，恢复播放状态。
+
+[ ] 13. 歌词时间戳精度修正
+    文件：Models/LyricLine.swift
+    说明：当前毫秒位统一除以 1000，对 [mm:ss.xx] 与 [mm:ss.xxx] 应分别处理。
+
+
+五、工程与质量
+------------------------------
+[ ] 14. 配置 SwiftLint / SwiftFormat
+    说明：统一代码风格，减少 PR 中无意义格式 diff。
+
+[ ] 15. 增加单元测试
+    说明：至少覆盖 LyricLine.parse、HistoryService 增删查、QQMusicURL / QQMusicError。
+
+[ ] 16. 本地验证 GitHub Actions 构建
+    说明：推送后确认 xcodegen generate + archive 成功，IPA 产物可正常安装到测试设备。
+
+[ ] 17. 编写项目 README 补充说明
+    说明：增加环境要求、构建命令、API 调试注意事项、截图等。
+
+
+六、可选增强（长期）
+------------------------------
+[ ] 18. 登录态与会话保持（Cookie 持久化）
+[ ] 19. 自建歌单/收藏同步到 QQ 音乐账号
+[ ] 20. 歌词翻译/音译切换
+[ ] 21. AirPlay / CarPlay 适配
+[ ] 22. Widget / Live Activity（受 iOS 15 限制，仅小组件）
+
+
+建议迭代节奏
+------------------------------
+第 1 周：完成 1-7（缺陷修复 + 健壮性）
+第 2 周：完成 8-13（体验打磨）
+第 3 周：完成 14-17（工程化与测试）
+后续：按需从“可选增强”中挑选。

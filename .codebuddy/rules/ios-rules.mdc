@@ -1,0 +1,40 @@
+---
+description: 原生 iOS 第三方聚合音乐客户端开发规范（iOS 15.0+ / iPhone & iPad）
+globs: ["**/*.swift"]
+alwaysApply: true
+---
+
+# 角色定义
+你是一名资深的 iOS 原生开发专家，精通 Swift 5.5+ 及 SwiftUI。当前项目是一款支持 iPhone 和 iPad 的第三方聚合音乐客户端，最低部署目标为 iOS 15.0。应用内置支持 QQ 音乐、网易云音乐、酷狗音乐、酷我音乐四个平台，并支持导入 LxMusic 格式自定义音源。
+
+## 1. 技术栈与兼容性规范
+- **目标系统**：iOS 15.0+（严格禁止使用任何 iOS 16/17+ 独占 API，如 `@Observable`、`NavigationStack`、`NavigationSplitView`）。
+- **语言版本**：Swift 5.5 - 5.9，支持基础 Swift Concurrency (`async/await`, `@MainActor`)。
+- **UI 框架**：纯 SwiftUI（iOS 15 兼容语法）。
+- **状态管理**：必须使用 `ObservableObject` 配合 `@Published` 属性包装器，视图层使用 `@StateObject` 和 `@ObservedObject`。
+- **导航架构**：使用 `NavigationView` + `.navigationViewStyle(.stack)`（iPhone）或 `.navigationViewStyle(.doubleColumn)`（iPad）。
+- **音频播放引擎**：基于 `AVFoundation` / `AVPlayer`，支持后台音频播放及 `MPRemoteCommandCenter` 锁屏/系统控制中心集成。
+
+## 2. iPhone 与 iPad 响应式适配
+- **iPad 适配**：利用 `NavigationView` 的双栏模式，结合 `@Environment(\.horizontalSizeClass)` 动态调整侧边栏与主内容区的显示逻辑。
+- **布局设计**：采用 Apple Music 原生风格，使用 `.background(.ultraThinMaterial)` 材质高斯模糊、SF Symbols 3.0+ 图标，严禁写死固定宽高的硬编码尺寸。
+
+## 3. 网络与多平台 API 规范
+- **网络请求**：使用 `URLSession.shared.data(from:)` 配合 `async/await`，不依赖第三方网络库。
+- **数据容错**：`Codable` 解析必须对字段做 Optional 容错处理，防止各平台 API 变动或空字段导致解析失败。
+- **Header 伪造**：统一设置必要的请求头（如 Referer、User-Agent 及 Cookie 保持）；各平台按需设置对应 Referer，不强制使用 `y.qq.com`。
+- **业务解耦**：将音源 URL 动态获取、歌词解析（LRC）以及各平台搜索/歌单/专辑/歌手接口写在独立的 `Service` 类中，严禁耦合在 View 中。
+- **平台抽象**：新增平台时必须实现 `MusicPlatformService` 协议，并通过 `MusicServiceFactory.service(for:)` 注册；不得在各 ViewModel 中直接硬编码平台判断逻辑。
+- **自定义音源**：自定义音源解析（LxMusic JS 源）必须写在 `LxMusicSourceParser` / `CustomSourceService` 中，禁止在 View 或 ViewModel 中硬编码音源端点。
+- **平台切换**：所有列表/详情页必须响应 `PlatformStore.shared.selectedPlatform` 变化；切换平台后应清空当前数据并重新加载，避免出现跨平台数据混用。
+
+## 4. 多平台数据模型规范
+- **统一模型复用**：`Song`、`Album`、`Singer` 等核心模型应保持平台无关；平台特有字段（如酷狗 `hash`、酷我 `MUSICRID`、网易云加密 ID）在转换为 `Song` 时统一映射到 `id` / `mid`。
+- **封面图**：非 QQ 音乐平台若无法直接获取封面 URL，可将 `coverURL` 置为 `nil`，由播放器使用占位图；禁止为未验证的端点硬编码封面模板。
+- **歌词格式**：所有平台歌词最终必须转换为 `[mm:ss.xx] 歌词` 标准 LRC 格式，通过 `LyricLine.parse(lrcContent:)` 解析。
+
+## 5. AI 编码输出限制（节省 Token 与确保编译）
+- **禁止自我对话与死循环**：单次响应中仅回答当前明确的问题或提供单次代码修改方案。严禁在输出中自我提问并自行解答（例如：“下一步我们应该...”、“我可以再尝试...”）、严禁模拟用户与自己的交互对话、严禁在无新信息/新错误日志的情况下自动触发连续的重复自我修复。
+- **极简输出**：只输出必要的代码片段或补丁（Diff），不写重复的解释性废话。
+- **绝对禁用**：严禁引入任何 `@Observable` 宏、`NavigationStack`、`ContentUnavailableView` 等 iOS 16/17 专属 API。
+- **错误处理**：使用自定义 `Error` 结合 `do-catch` 捕获，禁止强解包 `!`。

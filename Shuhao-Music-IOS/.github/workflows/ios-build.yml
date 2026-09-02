@@ -1,0 +1,53 @@
+name: Build Unsigned IPA
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version from date
+        run: echo "BUILD_VERSION=$(date +%Y%m%d)" >> $GITHUB_ENV
+
+      - name: Check Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build archive
+        run: |
+          xcodebuild -project ShuhaoMusic.xcodeproj \
+            -scheme ShuhaoMusic \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/ShuhaoMusic.xcarchive \
+            MARKETING_VERSION=${{ env.BUILD_VERSION }} \
+            CURRENT_PROJECT_VERSION=${{ env.BUILD_VERSION }} \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            archive
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/ShuhaoMusic.xcarchive/Products/Applications/ShuhaoMusic.app Payload/ShuhaoMusic.app
+          zip -r ShuhaoMusic-${{ env.BUILD_VERSION }}.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShuhaoMusic-${{ env.BUILD_VERSION }}
+          path: ShuhaoMusic-${{ env.BUILD_VERSION }}.ipa
