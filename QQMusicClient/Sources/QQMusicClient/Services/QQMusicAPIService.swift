@@ -7,6 +7,11 @@ actor QQMusicAPIService: MusicPlatformService {
 
     private let session = URLSession.shared
     private let guid = UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).description
+    private var cookie: String?
+
+    func updateCookie(_ cookie: String) {
+        self.cookie = cookie
+    }
 
     func search(keyword: String, page: Int = 1, pageSize: Int = 20) async throws -> [Song] {
         guard var components = URLComponents(string: QQMusicURL.searchBase) else {
@@ -18,13 +23,11 @@ actor QQMusicAPIService: MusicPlatformService {
             URLQueryItem(name: "w", value: keyword),
             URLQueryItem(name: "format", value: "json"),
             URLQueryItem(name: "cr", value: "1"),
-            URLQueryItem(name: "g_tk", value: "5381"),
+            URLQueryItem(name: "g_tk", value: gTk),
         ]
 
         guard let url = components.url else { throw QQMusicError.invalidURL }
-        let request = makeRequest(url: url)
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
+        let data = try await requestData(url: url)
 
         let decoded = try JSONDecoder().decode(SearchResponse.self, from: data)
         return decoded.songs
@@ -68,9 +71,7 @@ actor QQMusicAPIService: MusicPlatformService {
         ]
 
         guard let url = components.url else { throw QQMusicError.invalidURL }
-        let request = makeRequest(url: url)
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
+        let data = try await requestData(url: url)
 
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let req0 = json["req_0"] as? [String: Any],
@@ -99,9 +100,7 @@ actor QQMusicAPIService: MusicPlatformService {
         ]
 
         guard let url = components.url else { throw QQMusicError.invalidURL }
-        let request = makeRequest(url: url)
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
+        let data = try await requestData(url: url)
 
         let decoded = try JSONDecoder().decode(PlaylistListResponse.self, from: data)
         return decoded.playlists
@@ -118,13 +117,11 @@ actor QQMusicAPIService: MusicPlatformService {
             URLQueryItem(name: "onlysong", value: "0"),
             URLQueryItem(name: "disstid", value: id),
             URLQueryItem(name: "format", value: "json"),
-            URLQueryItem(name: "g_tk", value: "5381"),
+            URLQueryItem(name: "g_tk", value: gTk),
         ]
 
         guard let url = components.url else { throw QQMusicError.invalidURL }
-        let request = makeRequest(url: url)
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
+        let data = try await requestData(url: url)
 
         let decoded = try JSONDecoder().decode(PlaylistDetailResponse.self, from: data)
         guard let playlist = decoded.playlist else {
@@ -140,13 +137,11 @@ actor QQMusicAPIService: MusicPlatformService {
         components.queryItems = [
             URLQueryItem(name: "albummid", value: albumMid),
             URLQueryItem(name: "format", value: "json"),
-            URLQueryItem(name: "g_tk", value: "5381"),
+            URLQueryItem(name: "g_tk", value: gTk),
         ]
 
         guard let url = components.url else { throw QQMusicError.invalidURL }
-        let request = makeRequest(url: url)
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
+        let data = try await requestData(url: url)
 
         let decoded = try JSONDecoder().decode(AlbumDetail.self, from: data)
         guard let info = decoded.albumInfo else {
@@ -165,13 +160,11 @@ actor QQMusicAPIService: MusicPlatformService {
             URLQueryItem(name: "begin", value: String((page - 1) * pageSize)),
             URLQueryItem(name: "num", value: String(pageSize)),
             URLQueryItem(name: "format", value: "json"),
-            URLQueryItem(name: "g_tk", value: "5381"),
+            URLQueryItem(name: "g_tk", value: gTk),
         ]
 
         guard let url = components.url else { throw QQMusicError.invalidURL }
-        let request = makeRequest(url: url)
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
+        let data = try await requestData(url: url)
 
         let decoded = try JSONDecoder().decode(ArtistDetail.self, from: data)
         guard let info = decoded.artistInfo else {
@@ -187,16 +180,14 @@ actor QQMusicAPIService: MusicPlatformService {
         components.queryItems = [
             URLQueryItem(name: "songmid", value: songMid),
             URLQueryItem(name: "pcachetime", value: String(Date().timeIntervalSince1970)),
-            URLQueryItem(name: "g_tk", value: "5381"),
+            URLQueryItem(name: "g_tk", value: gTk),
             URLQueryItem(name: "format", value: "json"),
         ]
 
         guard let url = components.url else { throw QQMusicError.invalidURL }
-        var request = makeRequest(url: url)
-        request.setValue("https://y.qq.com/portal/player.html", forHTTPHeaderField: "Referer")
-
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
+        let data = try await requestData(url: url) { request in
+            request.setValue("https://y.qq.com/portal/player.html", forHTTPHeaderField: "Referer")
+        }
 
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let lyricBase64 = json["lyric"] as? String,
@@ -208,13 +199,66 @@ actor QQMusicAPIService: MusicPlatformService {
         return LyricLine.parse(lrcContent: lyricString)
     }
 
+    private var gTk: String {
+        guard let cookie = cookie,
+              let skey = extractSKey(from: cookie) else {
+            return "5381"
+        }
+        return String(computeGTK(from: skey))
+    }
+
+    private func extractSKey(from cookie: String) -> String? {
+        let tokens = cookie.split(separator: ";")
+        for token in tokens {
+            let pair = token.split(separator: "=", maxSplits: 1)
+            guard pair.count == 2 else { continue }
+            let key = pair[0].trimmingCharacters(in: .whitespaces)
+            if key == "p_skey" || key == "skey" {
+                return String(pair[1])
+            }
+        }
+        return nil
+    }
+
+    private func computeGTK(from skey: String) -> Int {
+        var hash = 5381
+        for char in skey {
+            hash += (hash << 5) + Int(char.unicodeScalars.first?.value ?? 0)
+        }
+        return hash & 0x7fffffff
+    }
+
     private func makeRequest(url: URL) -> URLRequest {
         var request = URLRequest(url: url)
         request.setValue(QQMusicHeader.referer, forHTTPHeaderField: "Referer")
         request.setValue(QQMusicHeader.origin, forHTTPHeaderField: "Origin")
         request.setValue(QQMusicHeader.userAgent, forHTTPHeaderField: "User-Agent")
+        if let cookie = cookie {
+            request.setValue(cookie, forHTTPHeaderField: "Cookie")
+        }
         request.timeoutInterval = 30
         return request
+    }
+
+    private func requestData(url: URL, configure: ((inout URLRequest) -> Void)? = nil) async throws -> Data {
+        var lastError: Error?
+        for attempt in 0..<2 {
+            do {
+                var request = makeRequest(url: url)
+                configure?(&request)
+                let (data, response) = try await session.data(for: request)
+                try validate(response: response)
+                return data
+            } catch {
+                lastError = error
+                if attempt == 0, let error = error as? QQMusicError,
+                   case .requestFailed = error {
+                    continue
+                }
+                throw error
+            }
+        }
+        throw lastError ?? QQMusicError.unknown
     }
 
     private func validate(response: URLResponse) throws {
