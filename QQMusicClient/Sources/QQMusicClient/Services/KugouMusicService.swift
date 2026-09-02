@@ -21,7 +21,8 @@ actor KugouMusicService: MusicPlatformService {
         ]
 
         guard let url = components.url else { throw QQMusicError.invalidURL }
-        let (data, response) = try await session.data(from: url)
+        let request = makeRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try validate(response: response)
 
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -55,7 +56,34 @@ actor KugouMusicService: MusicPlatformService {
     }
 
     func lyric(for songMid: String) async throws -> [LyricLine] {
-        throw QQMusicError.custom(message: "酷狗音乐歌词接口待接入")
+        guard var components = URLComponents(string: "https://wwwapi.kugou.com/yy/index.php") else {
+            throw QQMusicError.invalidURL
+        }
+        components.queryItems = [
+            URLQueryItem(name: "r", value: "play/getdata"),
+            URLQueryItem(name: "hash", value: songMid)
+        ]
+
+        guard let url = components.url else { throw QQMusicError.invalidURL }
+        let request = makeRequest(url: url)
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response)
+
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let dataObj = json["data"] as? [String: Any],
+              let lrcString = dataObj["lyrics"] as? String else {
+            throw QQMusicError.decodeFailed
+        }
+
+        return LyricLine.parse(lrcContent: lrcString)
+    }
+
+    private func makeRequest(url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.setValue("https://www.kugou.com", forHTTPHeaderField: "Referer")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 30
+        return request
     }
 
     private func validate(response: URLResponse) throws {

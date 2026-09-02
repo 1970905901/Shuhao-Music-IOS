@@ -57,7 +57,39 @@ actor KuwoMusicService: MusicPlatformService {
     }
 
     func lyric(for songMid: String) async throws -> [LyricLine] {
-        throw QQMusicError.custom(message: "酷我音乐歌词接口待接入")
+        let musicId = songMid.replacingOccurrences(of: "MUSIC_", with: "")
+        guard var components = URLComponents(string: "http://m.kuwo.cn/newh5/singles/songinfoandlrc") else {
+            throw QQMusicError.invalidURL
+        }
+        components.queryItems = [
+            URLQueryItem(name: "musicId", value: musicId)
+        ]
+
+        guard let url = components.url else { throw QQMusicError.invalidURL }
+        let request = makeRequest(url: url)
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response)
+
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let dataObj = json["data"] as? [String: Any],
+              let lrclist = dataObj["lrclist"] as? [[String: Any]] else {
+            throw QQMusicError.decodeFailed
+        }
+
+        return lrclist.compactMap { item -> LyricLine? in
+            guard let timeString = item["time"] as? String,
+                  let time = Double(timeString),
+                  let text = item["line"] as? String else { return nil }
+            return LyricLine(time: time, text: text.trimmingCharacters(in: .whitespaces))
+        }.sorted { $0.time < $1.time }
+    }
+
+    private func makeRequest(url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.setValue("http://m.kuwo.cn", forHTTPHeaderField: "Referer")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 30
+        return request
     }
 
     private func validate(response: URLResponse) throws {
